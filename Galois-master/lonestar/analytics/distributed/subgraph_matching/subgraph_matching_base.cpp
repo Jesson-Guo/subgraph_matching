@@ -93,21 +93,7 @@ void baseMatching(Graph& graph, const Pattern p, Graph& complete, const long lon
     );
     syncSubstrate->sync<writeSource, readAny, Reduce_set_degree>("InitializeGraph");
     syncSubstrate->sync<writeSource, readAny, Reduce_set_adj_node>("InitializeGraph");
-    // syncSubstrate->sync<writeSource, readAny, Reduce_set_degree, Bitset_degree>("InitializeGraph");
-    // syncSubstrate->sync<writeSource, readAny, Reduce_set_adj_node, Bitset_adj_node>("InitializeGraph");
     galois::runtime::getHostBarrier().wait();
-    // galois::do_all(
-    //     galois::iterate(allNodes),
-    //     [&](uint64_t i) {
-    //         std::cout << "\ngraph " << i << " " << graph.getGID(i) << " ----- ";
-    //         for (auto it : graph.getData(i).adj_node) std::cout << it << " ";
-    //         std::cout << "\n";
-    //     },
-    //     galois::loopname("max intersection size calculate"),
-    //     galois::chunk_size<CHUNK_SIZE>(),
-    //     galois::steal(),
-    //     galois::no_stats()
-    // );
 
     max_degree = max_deg;
     VertexSet::max_intersection_size = std::max(VertexSet::max_intersection_size, sec_max_deg);
@@ -119,7 +105,7 @@ void baseMatching(Graph& graph, const Pattern p, Graph& complete, const long lon
 
     galois::StatTimer matchingTime("Timer_matching");
     matchingTime.start();
-    uint64_t ans = pattern_matching(graph, schedule, max_deg);
+    long long ans = pattern_matching(graph, schedule, max_deg);
     matchingTime.stop();
 
     std::cout << "ans:\t" << ans << std::endl;
@@ -132,7 +118,7 @@ void baseMatching(Graph& graph, const Pattern p, Graph& complete, const long lon
 }
 
 int main(int argc, char** argv) {
-    sleep(20);
+    // sleep(20);
     galois::DistMemSys G;
     DistBenchStart(argc, argv, name, desc, url);
 

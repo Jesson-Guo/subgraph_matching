@@ -2,8 +2,7 @@
 #include "schedule.h"
 #include <algorithm>
 
-class VertexSet
-{
+class VertexSet {
 public:
     VertexSet();
     // allocate new memory according to max_intersection_size
@@ -79,8 +78,8 @@ void VertexSet::copy(int input_size, const int* input_data)
 
 VertexSet::~VertexSet()
 {
-    if (allocate== true && data != nullptr)
-        delete[] data;
+    if (allocate == true && data != nullptr)
+        data = nullptr; // delete[] data;
 }
 
 void VertexSet::intersection(const VertexSet& set0, const VertexSet& set1, int min_vertex, bool clique)

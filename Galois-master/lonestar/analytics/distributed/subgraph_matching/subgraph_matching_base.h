@@ -41,7 +41,7 @@ std::unique_ptr<galois::graphs::GluonSubstrate<Graph>> syncSubstrate;
 #include <iostream>
 #include <algorithm>
 
-void pattern_matching_aggressive_func(Graph& graph, const Schedule& schedule, VertexSet* vertex_set, VertexSet& subtraction_set, VertexSet& tmp_set, uint64_t max_degree, long long &local_ans, int depth) {
+void pattern_matching_aggressive_func(Graph& graph, const Schedule& schedule, VertexSet* vertex_set, VertexSet& subtraction_set, VertexSet& tmp_set, uint64_t max_degree, galois::GAccumulator<long long>& local_ans, int depth) {
     int loop_set_prefix_id = schedule.get_loop_set_prefix_id(depth); // @@@
     int loop_size = vertex_set[loop_set_prefix_id].get_size();
     if (loop_size <= 0)
@@ -142,13 +142,11 @@ void pattern_matching_aggressive_func(Graph& graph, const Schedule& schedule, Ve
 }
 
 long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_degree) {
-    galois::DGAccumulator<long long> global_ans;
-    global_ans.reset();
     VertexSet* vertex_set = new VertexSet[schedule.get_total_prefix_num()];
     VertexSet subtraction_set;
     VertexSet tmp_set;
     subtraction_set.init();
-    long long local_ans = 0;
+    galois::GAccumulator<long long> local_ans;
     // TODO : try different chunksize
     const auto& allMasterNodes = graph.masterNodesRange();
     galois::do_all(
@@ -169,7 +167,10 @@ long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_
     );
     galois::runtime::getHostBarrier().wait();
     delete[] vertex_set;
-    global_ans += local_ans;
+    std::cout << "local ans: " << local_ans.reduce() << std::endl;
+    galois::DGAccumulator<uint64_t> global_ans;
+    global_ans.reset();
+    global_ans += (size_t)local_ans.reduce();
     return global_ans.reduce() / schedule.get_in_exclusion_optimize_redundancy();
 }
 

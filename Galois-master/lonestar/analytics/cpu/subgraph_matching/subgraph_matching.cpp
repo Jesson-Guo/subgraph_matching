@@ -50,6 +50,8 @@ static cll::opt<long long> tri_cnt(
     cll::init(0)
 );
 
+static int max_degree(0);
+
 void baseMatching(Graph& graph, const Pattern p, Graph& complete, const long long tri_cnt) {
     int max_deg(0), sec_max_deg(0);
     galois::do_all(
@@ -92,28 +94,21 @@ void baseMatching(Graph& graph, const Pattern p, Graph& complete, const long lon
     );
     max_degree = max_deg;
     VertexSet::max_intersection_size = std::max(VertexSet::max_intersection_size, sec_max_deg);
-
-    Configuration config(p.get_adj_mat(), p.get_size());
-    int perf_type(1);
-    int restricts_type(1);
-    bool exc_opt(true);
-    galois::StatTimer genConfigTime("Timer_configuration");
-    genConfigTime.start();
-    configuration_generation(config, perf_type, restricts_type, exc_opt, complete, graph.size(), graph.sizeEdges(), tri_cnt);
-    genConfigTime.stop();
-    std::cout << "generate configuration time:\t" << genConfigTime.get_usec() << std::endl;
-
-    config.init(complete);
+    bool is_pattern_valid;
+    int perf_type(1), res_type(1);
+    bool opt(true);
+    Schedule schedule(p, is_pattern_valid, perf_type, res_type, opt, complete, max_deg, graph.size(), graph.sizeEdges(), tri_cnt);
+    assert(is_pattern_valid);
 
     galois::StatTimer matchingTime("Timer_matching");
     matchingTime.start();
-    uint64_t ans = pattern_matching(graph, config);
+    uint64_t ans = pattern_matching(graph, schedule, max_deg);
     matchingTime.stop();
     std::cout << "ans:\t" << ans << std::endl;
-    std::cout << "matching time:\t" << matchingTime.get_usec() << std::endl;
+    std::cout << "time:\t" << matchingTime.get_usec() << std::endl;
     std::cout << "restricts:\n";
-    for (auto res : config.restrict_pair) {
-        std::cout << "(" << res.first << ", " << res.second << ")  ";
+    for (auto p : schedule.restrict_pair) {
+        std::cout << "(" << p.first << ", " << p.second << ")  ";
     }
     std::cout << std::endl;
 }
@@ -142,7 +137,7 @@ int main(int argc, char** argv) {
     galois::StatTimer execTime("Timer_0");
     execTime.start();
 
-    Pattern p(size, adj_mat);
+    Pattern p(size, &adj_mat[0]);
 
     switch (algo) {
     case Base:
@@ -153,7 +148,9 @@ int main(int argc, char** argv) {
     }
 
     execTime.stop();
+
     galois::reportPageAlloc("MeminfoPost");
+
     totalTime.stop();
 
   return 0;

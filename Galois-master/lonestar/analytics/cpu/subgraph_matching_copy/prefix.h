@@ -1,30 +1,44 @@
 #pragma once
 #include <cstring>
-#include <vector>
 
-class Prefix {
+class Prefix
+{
 public:
-    Prefix() {};
-    ~Prefix() {};
-    void init(int input_size, std::vector<int> input_data);
-    bool operator==(const Prefix &pre) const;
-    bool operator!=(const Prefix &pre) const;
-    bool equal(int input_size, std::vector<int> input_data) const;
-    inline int get_size() const { return size; }
-    inline std::vector<int> get_data_ptr() const { return data; }
-    inline int get_data(int index) const { return data[index]; }
+    Prefix();
+    ~Prefix();
+    void init(int input_size, const int* input_data);
+    bool operator ==(const Prefix& pre) const;
+    bool operator !=(const Prefix& pre) const;
+    bool equal(int input_size, const int* input_data) const;
+    inline int get_size() const { return size;}
+    inline const int* get_data_ptr() const { return data;}
+    inline int get_data(int index) const { return data[index];}
 
 private:
     int size;
-    std::vector<int> data;
+    int* data;
 };
 
-void Prefix::init(int input_size, std::vector<int> input_data) {
-    size = input_size;
-    data = input_data;
+Prefix::Prefix()
+{
+    data = nullptr;
 }
 
-bool Prefix::operator==(const Prefix &pre) const {
+Prefix::~Prefix()
+{
+    if (data != nullptr)
+        delete[] data;
+}
+
+void Prefix::init(int input_size, const int* input_data)
+{
+    size = input_size;
+    data = new int[input_size];
+    memcpy(data, input_data, size * sizeof(int));
+}
+
+bool Prefix::operator==(const Prefix& pre) const
+{
     if (size != pre.get_size())
         return false;
     for (int i = 0; i < size; ++i)
@@ -33,7 +47,8 @@ bool Prefix::operator==(const Prefix &pre) const {
     return true;
 }
 
-bool Prefix::operator!=(const Prefix &pre) const {
+bool Prefix::operator!=(const Prefix& pre) const
+{
     if (size != pre.get_size())
         return true;
     for (int i = 0; i < size; ++i)
@@ -42,7 +57,8 @@ bool Prefix::operator!=(const Prefix &pre) const {
     return false;
 }
 
-bool Prefix::equal(int input_size, std::vector<int> input_data) const {
+bool Prefix::equal(int input_size, const int* input_data) const
+{
     if (size != input_size)
         return false;
     for (int i = 0; i < size; ++i)

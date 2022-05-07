@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 
 class DisjointSetUnion {
 public:
@@ -24,8 +25,9 @@ DisjointSetUnion::DisjointSetUnion(int n) {
 }
 
 DisjointSetUnion::~DisjointSetUnion() {
-    if(size > 0)
+    if( size > 0) {
         delete[] father;
+    }
 }
 
 void DisjointSetUnion::init() {
@@ -44,7 +46,6 @@ void DisjointSetUnion::merge(int id1, int id2) {
 }
 
 int DisjointSetUnion::get_father(int a) {
-    if(father[a] == a) 
-        return a;
+    if( father[a] == a) return a;
     else return father[a] = get_father(father[a]);
 }

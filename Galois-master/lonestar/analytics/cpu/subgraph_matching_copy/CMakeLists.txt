@@ -1,4 +1,4 @@
-add_executable(subgraph_matching_copy-cpu subgraph_matching.cpp)
+add_executable(subgraph_matching_copy-cpu subgraph_matching_copy.cpp)
 add_dependencies(apps subgraph_matching_copy-cpu)
 target_link_libraries(subgraph_matching_copy-cpu PRIVATE Galois::shmem lonestar)
 install(TARGETS subgraph_matching_copy-cpu DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT apps EXCLUDE_FROM_ALL)

@@ -16,7 +16,6 @@ private:
     int set_size;
     int* father;
 };
-
 DisjointSetUnion::DisjointSetUnion(int n) {
     size = n;
     set_size = n;
@@ -24,8 +23,9 @@ DisjointSetUnion::DisjointSetUnion(int n) {
 }
 
 DisjointSetUnion::~DisjointSetUnion() {
-    if(size > 0)
+    if( size > 0) {
         delete[] father;
+    }
 }
 
 void DisjointSetUnion::init() {
@@ -44,7 +44,6 @@ void DisjointSetUnion::merge(int id1, int id2) {
 }
 
 int DisjointSetUnion::get_father(int a) {
-    if(father[a] == a) 
-        return a;
+    if( father[a] == a) return a;
     else return father[a] = get_father(father[a]);
 }
