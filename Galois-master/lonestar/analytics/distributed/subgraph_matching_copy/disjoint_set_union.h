@@ -15,24 +15,21 @@ private:
     
     int size;
     int set_size;
-    int* father;
+    std::vector<int> father;
 };
 
 DisjointSetUnion::DisjointSetUnion(int n) {
     size = n;
     set_size = n;
-    father = new int[n];
+    father = std::vector<int>(n);
 }
 
 DisjointSetUnion::~DisjointSetUnion() {
-    if( size > 0) {
-        delete[] father;
-    }
+    if(size > 0) father.clear();
 }
 
 void DisjointSetUnion::init() {
-    for(int i = 0; i < size; ++i)
-        father[i] = i;
+    for(int i = 0; i < size; ++i) father[i] = i;
     set_size = size;
 }
 
@@ -46,6 +43,6 @@ void DisjointSetUnion::merge(int id1, int id2) {
 }
 
 int DisjointSetUnion::get_father(int a) {
-    if( father[a] == a) return a;
+    if(father[a] == a) return a;
     else return father[a] = get_father(father[a]);
 }

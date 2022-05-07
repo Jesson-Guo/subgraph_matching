@@ -2,92 +2,77 @@
 #include "schedule.h"
 #include <algorithm>
 
-class VertexSet
-{
+class VertexSet {
 public:
     VertexSet();
     // allocate new memory according to max_intersection_size
     void init();
     void init(int init_size);
     // use memory from Graph, do not allocate new memory
-    void init(int input_size, int* input_data);
-    void copy(int input_size, const int* input_data);
+    void init(int input_size, std::vector<int> input_data);
+    void copy(int input_size, const std::vector<int> input_data);
     ~VertexSet();
-    void intersection(const VertexSet& set0, const VertexSet& set1, int min_vertex = -1, bool clique = false);
-    void intersection_with(const VertexSet& set1);
+    void intersection(const VertexSet &set0, const VertexSet &set1, int min_vertex = -1, bool clique = false);
+    void intersection_with(const VertexSet &set1);
     //set1 is unordered
-    static int unorderd_subtraction_size(const VertexSet& set0, const VertexSet& set1, int size_after_restrict = -1);
+    static int unorderd_subtraction_size(const VertexSet &set0, const VertexSet &set1, int size_after_restrict = -1);
     void insert_ans_sort(int val);
-    inline int get_size() const { return size;}
-    inline int get_data(int i) const { return data[i];}
-    inline const int* get_data_ptr() const { return data;}
-    inline int* get_data_ptr() { return data;}
-    inline void push_back(int val) { data[size++] = val;}
-    inline void pop_back() { --size;}
-    inline int get_last() const { return data[size - 1];}
+    inline int get_size() const { return size; }
+    inline int get_data(int i) const { return data[i]; }
+    inline const std::vector<int> get_data_ptr() const { return data; }
+    inline std::vector<int> get_data_ptr() { return data; }
+    inline void push_back(int val) { data[size++] = val; }
+    inline void pop_back() { --size; }
+    inline int get_last() const { return data[size - 1]; }
     bool has_data(int val);
     static int max_intersection_size;
-    void build_vertex_set(const Schedule& schedule, const VertexSet* vertex_set, int* input_data, int input_size, int prefix_id, int min_vertex = -1, bool clique = false);
+    void build_vertex_set(const Schedule &schedule, const std::vector<VertexSet> vertex_set, std::vector<int> input_data, int input_size, int prefix_id, int min_vertex = -1, bool clique = false);
 
 private:
-    int* data;
+    std::vector<int> data;
     int size;
     bool allocate;
 };
 
 int VertexSet::max_intersection_size = -1;
 
-VertexSet::VertexSet(): data(nullptr), size(0), allocate(false) {}
+VertexSet::VertexSet() : data(std::vector<int>(0)), size(0), allocate(false) {}
 
 void VertexSet::init() {
-    if (allocate == true && data != nullptr)
+    if (allocate == true)
         size = 0; // do not reallocate
     else {
         size = 0;
         allocate = true;
-        data = new int[max_intersection_size];
+        data = std::vector<int>(max_intersection_size);
     }
 }
 
 //this function is only used for tmp_set in graph.cpp (i.e., init(Graph.max_degree))
-void VertexSet::init(int input_size)
-{
-    if (allocate == true && data != nullptr)
+void VertexSet::init(int input_size) {
+    if (allocate == true)
         size = 0;
-    else
-    {
+    else {
         size = 0;
         allocate = true;
-        data = new int[input_size];
+        data = std::vector<int>(input_size);
     }
 }
 
-void VertexSet::init(int input_size, int* input_data)
-{
-    if (allocate == true && data != nullptr)
-        delete[] data;
+void VertexSet::init(int input_size, std::vector<int> input_data) {
     size = input_size;
     data = input_data;
     allocate = false;
 }
 
-void VertexSet::copy(int input_size, const int* input_data)
-{
-    size = input_size;
-    for(int i = 0; i < input_size; ++i) data[i] = input_data[i];
+VertexSet::~VertexSet() {
+    if (allocate== true) data.clear();
 }
 
-VertexSet::~VertexSet()
-{
-    if (allocate== true && data != nullptr)
-        delete[] data;
-}
-
-void VertexSet::intersection(const VertexSet& set0, const VertexSet& set1, int min_vertex, bool clique)
-{
-    if (&set0 == &set1)
-    {
-        copy(set0.get_size(), set0.get_data_ptr());
+void VertexSet::intersection(const VertexSet &set0, const VertexSet &set1, int min_vertex, bool clique) {
+    if (&set0 == &set1) {
+        size = set0.get_size();
+        data = set0.get_data_ptr();
         return;
     }
     int i = 0;
@@ -107,23 +92,19 @@ void VertexSet::intersection(const VertexSet& set0, const VertexSet& set1, int m
             return;
     int data0 = set0.get_data(0);
     int data1 = set1.get_data(0);
-    if (clique)
+    if (clique) {
         // TODO : Try more kinds of calculation.
         // For example, we can use binary search find the last element which is smaller than min_vertex, and set its index as loop_size.
-        while (i < size0 && j < size1)
-        {
-            if (data0 < data1)
-            {
+        while (i < size0 && j < size1) {
+            if (data0 < data1) {
                 if ((data0 = set0.get_data(++i)) >= min_vertex)
                     break;
             }
-            else if (data0 > data1)
-            {
+            else if (data0 > data1) {
                 if ((data1 = set1.get_data(++j)) >= min_vertex)
                     break;
             }
-            else
-            {
+            else {
                 push_back(data0);
                 if ((data0 = set0.get_data(++i)) >= min_vertex)
                     break;
@@ -131,28 +112,28 @@ void VertexSet::intersection(const VertexSet& set0, const VertexSet& set1, int m
                     break;
             }
         }
-    else
-        while (i < size0 && j < size1)
-        {
+    }
+    else {
+        while (i < size0 && j < size1) {
             data0 = set0.get_data(i);
             data1 = set1.get_data(j);
             if (data0 < data1)
                 ++i;
             else if (data0 > data1)
                 ++j;
-            else
-            {
+            else {
                 push_back(data0);
                 ++i;
                 ++j;
             }
         }
+    }
 }
 
-void VertexSet::intersection_with(const VertexSet& set1) {
+void VertexSet::intersection_with(const VertexSet &set1) {
     if (this == &set1)
         return;
-    const VertexSet& set0 = *this;
+    const VertexSet &set0 = *this;
     int i = 0;
     int j = 0;
     int size0 = set0.get_size();
@@ -168,16 +149,14 @@ void VertexSet::intersection_with(const VertexSet& set1) {
     int data0 = set0.get_data(0);
     int data1 = set1.get_data(0);
     size = 0;
-    while (i < size0 && j < size1)
-    {
+    while (i < size0 && j < size1) {
         data0 = set0.get_data(i);
         data1 = set1.get_data(j);
         if (data0 < data1)
             ++i;
         else if (data0 > data1)
             ++j;
-        else
-        {
+        else {
             push_back(data0);
             ++i;
             ++j;
@@ -185,13 +164,11 @@ void VertexSet::intersection_with(const VertexSet& set1) {
     }
 }
 
-void VertexSet::build_vertex_set(const Schedule& schedule, const VertexSet* vertex_set, int* input_data, int input_size, int prefix_id, int min_vertex, bool clique)
-{
+void VertexSet::build_vertex_set(const Schedule &schedule, const std::vector<VertexSet> vertex_set, std::vector<int> input_data, int input_size, int prefix_id, int min_vertex, bool clique) {
     int father_id = schedule.get_father_prefix_id(prefix_id);
     if (father_id == -1)
         init(input_size, input_data);
-    else
-    {
+    else {
         init();
         VertexSet tmp_vset;
         tmp_vset.init(input_size, input_data);
@@ -199,41 +176,23 @@ void VertexSet::build_vertex_set(const Schedule& schedule, const VertexSet* vert
     }
 }
 
-void VertexSet::insert_ans_sort(int val)
-{
-    int i;
-    for (i = size - 1; i >= 0; --i)
-        if (data[i] >= val)
-            data[i + 1] = data[i];
-        else
-        {
-            data[i + 1] = val;
-            break;
-        }
-    if (i == -1)
-        data[0] = val;
-    ++size;
-}
-
-bool VertexSet::has_data(int val)
-{
+bool VertexSet::has_data(int val) {
     for (int i = 0; i < size; ++i)
         if (data[i] == val)
             return true;
     return false;
 }
 
-int VertexSet::unorderd_subtraction_size(const VertexSet& set0, const VertexSet& set1, int size_after_restrict)
-{
+int VertexSet::unorderd_subtraction_size(const VertexSet &set0, const VertexSet &set1, int size_after_restrict) {
     int size0 = set0.get_size();
     int size1 = set1.get_size();
     if (size_after_restrict != -1)
         size0 = size_after_restrict;
 
     int ret = size0;
-    const int* set0_ptr = set0.get_data_ptr();
+    const std::vector<int> set0_ptr = set0.get_data_ptr();
     for (int j = 0; j < size1; ++j)
-        if (std::binary_search(set0_ptr, set0_ptr + size0, set1.get_data(j)))
+        if (std::binary_search(set0_ptr.begin(), set0_ptr.begin() + size0, set1.get_data(j)))
             --ret;
     return ret;
 }

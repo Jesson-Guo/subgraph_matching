@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
     // Graph complete;
     // galois::graphs::readGraph(complete, completeFile);
 
-    Pattern p(size, &adj_mat[0]);
+    Pattern p(size, adj_mat);
 
     galois::StatTimer execTime("Timer_0");
     execTime.start();
