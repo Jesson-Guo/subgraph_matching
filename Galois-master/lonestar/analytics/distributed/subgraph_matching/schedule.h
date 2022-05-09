@@ -32,7 +32,6 @@ public:
     inline int get_next(int i) const { return next[i]; }
     inline int get_in_exclusion_optimize_num() const { return in_exclusion_optimize_num; }
     inline void set_in_exclusion_optimize_num(int num) { in_exclusion_optimize_num = num; }
-    int get_in_exclusion_optimize_num_when_not_optimize();
     void add_restrict(const std::vector<std::pair<int, int>>& restricts);
     inline int get_total_restrict_num() const { return total_restrict_num; }
     inline int get_restrict_last(int i) const { return restrict_last[i]; }

@@ -227,7 +227,7 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         }
 
         int *best_order = new int[size];
-        double min_val;
+        double min_val = 0;
         bool have_best = false;
         
 
@@ -340,7 +340,7 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         }
 
         bool have_best = false;
-        double min_val;
+        double min_val = 0;
 
         for(const auto& pairs : restricts_vector) {
             double val;
@@ -1221,12 +1221,6 @@ void Schedule::remove_invalid_permutation(std::vector<std::vector<int>>& candida
             candidate_permutations.erase(candidate_permutations.begin() + i);
         }
     }
-}
-
-int Schedule::get_in_exclusion_optimize_num_when_not_optimize() {
-    std::vector<int> I;
-    for (int i = 0; i < size; ++i) I.push_back(i);
-    return get_vec_optimize_num(I);
 }
 
 void Schedule::set_in_exclusion_optimize_redundancy(Graph& complete, uint64_t max_degree) {

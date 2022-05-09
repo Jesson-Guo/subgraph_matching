@@ -17,4 +17,3 @@ add_subdirectory(sssp)
 add_subdirectory(triangle-counting)
 
 add_subdirectory(subgraph_matching)
-add_subdirectory(subgraph_matching_copy)

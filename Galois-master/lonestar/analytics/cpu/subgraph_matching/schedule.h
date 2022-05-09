@@ -32,8 +32,7 @@ public:
     inline int get_next(int i) const { return next[i]; }
     inline int get_in_exclusion_optimize_num() const { return in_exclusion_optimize_num; }
     inline void set_in_exclusion_optimize_num(int num) { in_exclusion_optimize_num = num; }
-    int get_in_exclusion_optimize_num_when_not_optimize();
-    void add_restrict(const std::vector<std::pair<int, int>>& restricts);
+    void add_restrict(int* restrict_first, int* restrict_second, int restrict_size);
     inline int get_total_restrict_num() const { return total_restrict_num; }
     inline int get_restrict_last(int i) const { return restrict_last[i]; }
     inline int get_restrict_next(int i) const { return restrict_next[i]; }
@@ -42,25 +41,26 @@ public:
     int get_max_degree() const;
     int get_multiplicity() const;
     void aggressive_optimize(std::vector<std::pair<int, int>>& ordered_pairs) const;
-    void aggressive_optimize_get_all_pairs(std::vector<std::vector<std::pair<int, int>>>& ordered_pairs_vector);
-    void aggressive_optimize_dfs(Pattern base_dag, std::vector<std::vector<int>> isomorphism_vec, std::vector<std::vector<std::vector<int>>> permutation_groups, std::vector<std::pair<int, int>> ordered_pairs, std::vector<std::vector<std::pair<int, int>>>& ordered_pairs_vector);
+    int aggressive_optimize_get_all_pairs(int** restricts_first, int** restricts_second, int* restricts_size);
+    void aggressive_optimize_dfs(Pattern base_dag, int** isomorphism_vec, int iso_size, int*** permutation_groups, int** permutation_groups_size, int* groups_cnt, int* ordered_first, int* ordered_second, int ordered_size, int** restricts_first, int** restricts_second, int* restricts_size, int& rest_size);
     void restrict_selection(int v_cnt, unsigned int e_cnt, long long tri_cnt, std::vector<std::vector<std::pair<int, int>>> ordered_pairs_vector, std::vector<std::pair<int, int>> &best_restricts) const;
-    void restricts_generate(const int* cur_adj_mat, std::vector<std::vector<std::pair<int, int>>>& restricts, Graph& complete, uint64_t max_degree);
+    int restricts_generate(const int* cur_adj_mat, int** restricts_first, int** restricts_second, int* restricts_size, Graph& complete, uint64_t max_degree);
 
     void GraphZero_aggressive_optimize(std::vector<std::pair<int, int>>& ordered_pairs) const;
     void GraphZero_get_automorphisms(std::vector<std::vector<int>>& Aut) const;
 
-    std::vector<std::vector<int>> get_isomorphism_vec() const;
-    static std::vector<std::vector<int>> calc_permutation_group(const std::vector<int> vec, int size);
+    int get_isomorphism_vec(int** isomorphism_vec) const;
+    int calc_permutation_group(int* vec, int size, int** res, int* res_size);
     inline const int* get_adj_mat_ptr() const { return adj_mat; }
-
-    void print_schedule() const;
 
     std::vector<std::vector<std::vector<int>>> in_exclusion_optimize_group;
     std::vector<int> in_exclusion_optimize_val;
-    std::vector<std::pair<int, int>> restrict_pair;
+    int* rest_first;
+    int* rest_second;
+    int rest_size;
 
     uint64_t max_degree;
+    std::vector<std::vector<int>> isomorphism_vec;
 
 private:
     int* adj_mat;
@@ -81,19 +81,19 @@ private:
 
     void build_loop_invariant();
     int find_father_prefix(int data_size, const int* data);
-    void get_full_permutation(std::vector<std::vector<int>>& vec, bool use[], std::vector<int> tmp_vec, int depth) const;
+    void get_full_permutation(int** vec) const;
 
-    double our_estimate_schedule_restrict(const std::vector<int>& order, const std::vector<std::pair<int, int>>& pairs, int v_cnt, unsigned int e_cnt, long long tri_cnt);
-    double GraphZero_estimate_schedule_restrict(const std::vector<int>& order, const std::vector<std::pair<int, int>>& pairs, int v_cnt, unsigned int e_cnt);
-    double Naive_estimate_schedule_restrict(const std::vector<int>& order, const std::vector<std::pair<int, int>>& paris, int v_cnt, unsigned int e_cnt);
+    double our_estimate_schedule_restrict(int* order, int* restrict_first, int* restrict_second, int restrict_size, int v_cnt, unsigned int e_cnt, long long tri_cnt);
+    double GraphZero_estimate_schedule_restrict(int* order, int* restrict_first, int* restrict_second, int restrict_size, int v_cnt, unsigned int e_cnt);
+    double Naive_estimate_schedule_restrict(int* order, int* restrict_first, int* restrict_second, int restrict_size, int v_cnt, unsigned int e_cnt);
 
     void get_in_exclusion_optimize_group(int depth, int* id, int id_cnt, int* in_exclusion_val);
     //use principle of inclusion-exclusion to optimize
     void init_in_exclusion_optimize();
 
-    int get_vec_optimize_num(const std::vector<int>& vec);
+    int get_vec_optimize_num(int* vec);
 
-    void remove_invalid_permutation(std::vector<std::vector<int>>& candidate_permutations);
+    int remove_invalid_permutation(int** candidate_permutations, int n);
 
     void set_in_exclusion_optimize_redundancy(Graph& complete, uint64_t max_degree);
 };

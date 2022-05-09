@@ -107,8 +107,9 @@ void baseMatching(Graph& graph, const Pattern p, Graph& complete, const long lon
     std::cout << "ans:\t" << ans << std::endl;
     std::cout << "time:\t" << matchingTime.get_usec() << std::endl;
     std::cout << "restricts:\n";
-    for (auto p : schedule.restrict_pair) {
-        std::cout << "(" << p.first << ", " << p.second << ")  ";
+    // for (auto p : schedule.restrict_pair) {
+    for (int i=0; i<schedule.rest_size; i++) {
+        std::cout << "(" << schedule.rest_first[i] << ", " << schedule.rest_second[i] << ")  ";
     }
     std::cout << std::endl;
 }
