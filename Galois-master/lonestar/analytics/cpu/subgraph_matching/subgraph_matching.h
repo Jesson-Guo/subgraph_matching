@@ -30,6 +30,30 @@ typedef Graph::GraphNode GNode;
 #include <iostream>
 #include <algorithm>
 
+void quickSort(int* first, int* second, int l, int r) {
+    if (l < r) {      
+        int i = l, j = r, x = first[l], y = second[l];
+        while (i < j) {
+            while(i < j && (first[j] > x || (first[j] == x && second[j] >= y))) j--;
+            if(i < j) {
+                first[i] = first[j];
+                second[i] = second[j];
+                i++;
+            }
+            while(i < j && first[i] < x) i++;
+            if(i < j) {
+                first[j] = first[i];
+                second[j] = second[i];
+                j--;
+            }
+        }
+        first[i] = x;
+        second[i] = y;
+        quickSort(first, second, l, i - 1);
+        quickSort(first, second, i + 1, r);
+    }
+}
+
 void pattern_matching_aggressive_func(Graph& graph, const Schedule &schedule, VertexSet* vertex_set, VertexSet &subtraction_set, VertexSet &tmp_set, uint64_t max_degree, galois::GAccumulator<long long>& local_ans, int depth) {
     int loop_set_prefix_id = schedule.get_loop_set_prefix_id(depth); // @@@
     int loop_size = vertex_set[loop_set_prefix_id].get_size();
@@ -125,6 +149,7 @@ void pattern_matching_aggressive_func(Graph& graph, const Schedule &schedule, Ve
 }
 
 long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_degree) {
+    // 给它们加锁
     VertexSet* vertex_set = new VertexSet[schedule.get_total_prefix_num()];
     VertexSet subtraction_set;
     VertexSet tmp_set;
@@ -147,7 +172,7 @@ long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_
         galois::steal(),
         galois::no_stats()
     );
-    delete[] vertex_set;
+    // delete[] vertex_set;
     std::cout << "local ans: " << local_ans.reduce() << std::endl;
     long long global_ans = local_ans.reduce();
     return global_ans / schedule.get_in_exclusion_optimize_redundancy();
@@ -186,33 +211,26 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         get_full_permutation(candidate_permutations);
 
         int perm_size = remove_invalid_permutation(candidate_permutations, pow);
-        int** candidate_permutations_t = new int*[perm_size];
+        int** candidate_permutations_t = new int*[pow];
+        for (int i=0; i<pow; i++) candidate_permutations_t[i] = new int[size];
 
         if (performance_modeling_type == 1) {
             //reduce candidates
             int max_val = 0;
             for (int i=0; i<perm_size; i++) {
-                int* vec = new int[size];
-                memcpy(vec, candidate_permutations[i], sizeof(int)*size);
-                max_val = std::max(max_val, get_vec_optimize_num(vec));
-                delete[] vec;
+                max_val = std::max(max_val, get_vec_optimize_num(candidate_permutations[i]));
             }
             int j = 0;
             for (int i=0; i<perm_size; i++) {
-                int* vec = new int[size];
-                memcpy(vec, candidate_permutations[i], sizeof(int)*size);
-                if (get_vec_optimize_num(vec) == max_val) {
-                    candidate_permutations_t[j] = new int[size];
-                    memcpy(candidate_permutations_t[j], vec, sizeof(int)*size);
+                if (get_vec_optimize_num(candidate_permutations[i]) == max_val) {
+                    memcpy(candidate_permutations_t[j], candidate_permutations[i], sizeof(int)*size);
                     j++;
                 }
-                delete[] vec;
             }
-            for (int i=j;i<perm_size;i++) delete[] candidate_permutations_t[i];
             perm_size = j;
         }
-        for (int i=0;i<pow;i++) delete[] candidate_permutations[i];
-        delete[] candidate_permutations;
+        // for (int i=0;i<pow;i++) delete[] candidate_permutations[i];
+        // delete[] candidate_permutations;
 
         int *best_order = new int[size];
         double min_val = 0;
@@ -229,11 +247,9 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         // );
 
         for (int o=0; o<perm_size; o++) {
-            int* vec = new int[size];
-            memcpy(vec, candidate_permutations_t[o], sizeof(int)*size);
             int* rank = new int[size];
             // int rank[size];
-            for (int i = 0; i < size; ++i) rank[vec[i]] = i;
+            for (int i = 0; i < size; ++i) rank[candidate_permutations_t[o][i]] = i;
 
             int* cur_adj_mat = new int[size*size];
             for (int i = 0; i < size; ++i)
@@ -258,13 +274,13 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
             if (rest_size == 0) {
                 double val = 0;
                 if (performance_modeling_type == 1) {
-                    val = our_estimate_schedule_restrict(vec, nullptr, nullptr, 0, v_cnt, e_cnt, tri_cnt);
+                    val = our_estimate_schedule_restrict(candidate_permutations_t[o], nullptr, nullptr, 0, v_cnt, e_cnt, tri_cnt);
                 }
 
                 if (have_best == false || val < min_val) {
                     have_best = true;
                     min_val = val;
-                    for (int i = 0; i < size; ++i) best_order[i] = vec[i];
+                    for (int i = 0; i < size; ++i) best_order[i] = candidate_permutations_t[o][i];
                     best_pairs_size = 0;
                 }
             }
@@ -273,29 +289,28 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
             for (int i=0; i<rest_size; i++) {
                 double val = 0;
                 if (performance_modeling_type == 1) {
-                    val = our_estimate_schedule_restrict(vec, restricts_first[i], restricts_second[i], restricts_size[i], v_cnt, e_cnt, tri_cnt);
+                    val = our_estimate_schedule_restrict(candidate_permutations_t[o], restricts_first[i], restricts_second[i], restricts_size[i], v_cnt, e_cnt, tri_cnt);
                 }
 
                 if (have_best == false || val < min_val) {
                     have_best = true;
                     min_val = val;
-                    for (int i = 0; i < size; ++i) best_order[i] = vec[i];
+                    for (int i = 0; i < size; ++i) best_order[i] = candidate_permutations_t[o][i];
                     best_pairs_size = restricts_size[i];
                     memcpy(best_pairs_first, restricts_first[i], sizeof(int)*restricts_size[i]);
                     memcpy(best_pairs_second, restricts_second[i], sizeof(int)*restricts_size[i]);
                 }
             }
-            delete[] rank;
-            delete[] cur_adj_mat;
-            delete[] vec;
-            delete[] restricts_size;
-            for (int i=0;i<pow;i++) delete[] restricts_first[i];
-            for (int i=0;i<pow;i++) delete[] restricts_second[i];
-            delete[] restricts_first;
-            delete[] restricts_second;
+            // delete[] rank;
+            // delete[] cur_adj_mat;
+            // delete[] restricts_size;
+            // for (int i=0;i<pow;i++) delete[] restricts_first[i];
+            // for (int i=0;i<pow;i++) delete[] restricts_second[i];
+            // delete[] restricts_first;
+            // delete[] restricts_second;
         }
-        for (int i=0;i<perm_size;i++) delete[] candidate_permutations_t[i];
-        delete[] candidate_permutations_t;
+        // for (int i=0;i<pow;i++) delete[] candidate_permutations_t[i];
+        // delete[] candidate_permutations_t;
 
         int rank[size];
         for (int i = 0; i < size; ++i) rank[best_order[i]] = i;
@@ -304,13 +319,13 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         for (int i = 0; i < size; ++i)
             for (int j = 0; j < size; ++j)
                 adj_mat[INDEX(rank[i], rank[j], size)] = pattern_adj_mat[INDEX(i, j, size)]; 
-        delete[] best_order;
+        // delete[] best_order;
     }
     if (use_in_exclusion_optimize) {
         int* I = new int[size];
         for (int i = 0; i < size; ++i) I[i] = i;
         in_exclusion_optimize_num = get_vec_optimize_num(I);
-        delete[] I;
+        // delete[] I;
         if (in_exclusion_optimize_num <= 1) {
             printf("Can not use in_exclusion_optimize with this schedule\n");
             in_exclusion_optimize_num = 0;
@@ -353,8 +368,7 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
                 valid = true;
                 break;
             }
-        if (valid == false)
-        {
+        if (valid == false) {
             //Invalid Schedule
             is_pattern_valid = false;
             return;
@@ -363,8 +377,8 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
 
     build_loop_invariant();
     if (restricts_type != 0) add_restrict(best_pairs_first, best_pairs_second, best_pairs_size);
-    delete[] best_pairs_first;
-    delete[] best_pairs_second;
+    // delete[] best_pairs_first;
+    // delete[] best_pairs_second;
     
     set_in_exclusion_optimize_redundancy(complete, max_degree);
 }
@@ -418,18 +432,18 @@ Schedule::Schedule(const int* _adj_mat, int _size, Graph& complete, uint64_t _ma
 }
 
 Schedule::~Schedule() {
-    delete[] adj_mat;
-    delete[] father_prefix_id;
-    delete[] last;
-    delete[] next;
-    delete[] loop_set_prefix_id;
-    delete[] prefix;
-    delete[] restrict_last;
-    delete[] restrict_next;
-    delete[] restrict_index;
+    // delete[] adj_mat;
+    // delete[] father_prefix_id;
+    // delete[] last;
+    // delete[] next;
+    // delete[] loop_set_prefix_id;
+    // delete[] prefix;
+    // delete[] restrict_last;
+    // delete[] restrict_next;
+    // delete[] restrict_index;
 
-    delete[] rest_first;
-    delete[] rest_second;
+    // delete[] rest_first;
+    // delete[] rest_second;
 }
 
 int Schedule::get_max_degree() const {
@@ -444,7 +458,7 @@ int Schedule::get_max_degree() const {
 }
 
 void Schedule::build_loop_invariant() {
-    int* tmp_data = new int[size];
+    int tmp_data[size];
     loop_set_prefix_id[0] = -1;
     for (int i = 1; i < size; ++i)
     {
@@ -455,7 +469,6 @@ void Schedule::build_loop_invariant() {
         loop_set_prefix_id[i] = find_father_prefix(data_size, tmp_data);
     }
     assert(total_prefix_num <= size * (size - 1) / 2);
-    delete[] tmp_data;
 }
 
 int Schedule::find_father_prefix(int data_size, const int* data) {
@@ -525,8 +538,8 @@ int Schedule::get_multiplicity() const {
 
     int iso_size = get_isomorphism_vec(isomorphism_vec);
 
-    for (int i=0;i<pow;i++) delete[] isomorphism_vec[i];
-    delete[] isomorphism_vec;
+    // for (int i=0;i<pow;i++) delete[] isomorphism_vec[i];
+    // delete[] isomorphism_vec;
     return iso_size;
 }
 
@@ -540,8 +553,6 @@ int Schedule::aggressive_optimize_get_all_pairs(int** restricts_first, int** res
     for (int i=0; i<pow; i++) isomorphism_vec[i] = new int[size];
     int iso_size = get_isomorphism_vec(isomorphism_vec);
 
-    std::cout << " iso_size: " << iso_size << "\n";
-
     int*** permutation_groups = new int**[pow];
     for (int i = 0;i < pow;i++) {
         permutation_groups[i] = new int*[size];
@@ -553,46 +564,14 @@ int Schedule::aggressive_optimize_get_all_pairs(int** restricts_first, int** res
     for (int j = 0;j < pow;j++) {
         permutation_groups_size[j] = new int[size];
     }
-    int* groups_cnt = new int[pow];
+    int groups_cnt[pow];
 
     for (int i=0; i<iso_size; i++) {
-        int* v = new int[size];
-        memcpy(v, isomorphism_vec[i], sizeof(int)*size);
-//        groups_cnt[i] = calc_permutation_group(v, size, permutation_groups[i], permutation_groups_size[i]);
-        bool use[size];
-        for (int j = 0; j < size; ++j) use[j] = false;
-        std::vector<std::vector<int>> res;
-        res.clear();
-        for (int j = 0; j < size; ++j) {
-            if (use[j] == false) {
-                std::vector<int> tmp_vec;
-                tmp_vec.clear();
-                tmp_vec.push_back(j);
-                use[j] = true;
-                int x = v[j];
-                while (use[x] == false) {
-                    use[x] = true;
-                    tmp_vec.push_back(x);
-                    x = v[x];
-                }
-                res.push_back(tmp_vec);
-            }
-        }
-        std::cout << "res: " << res.size() << std::endl;
-        for (uint32_t j=0; j<res.size(); j++) {
-           for (uint32_t k=0; k<res[j].size(); k++) {
-               permutation_groups[i][j][k] = res[j][k];
-           }
-           std::cout << "res[0]: " << res[j].size() << std::endl;
-           std::cout << "i: " << i << ", j: " << j << std::endl;
-           permutation_groups_size[i][j] = res[j].size();
-        }
-        groups_cnt[i] = res.size();
-        delete[] v;
+        groups_cnt[i] = calc_permutation_group(isomorphism_vec[i], size, permutation_groups[i], permutation_groups_size[i]);
     }
 
-    int* ordered_first = new int[iso_size];
-    int* ordered_second = new int[iso_size];
+    int ordered_first[iso_size];
+    int ordered_second[iso_size];
     int ordered_size = 0;
 
     // delete permutation group which contains 1 permutation with 2 elements and some permutation with 1 elements,
@@ -635,20 +614,17 @@ int Schedule::aggressive_optimize_get_all_pairs(int** restricts_first, int** res
     int rest_size = 0;
     aggressive_optimize_dfs(base_dag, isomorphism_vec, iso_size, permutation_groups, permutation_groups_size, groups_cnt, ordered_first, ordered_second, ordered_size, restricts_first, restricts_second, restricts_size, rest_size);
 
-    delete[] ordered_first;
-    delete[] ordered_second;
+    // for (int i = 0;i < pow;i++) {
+    //     for (int j = 0;j < size;j++) delete[] permutation_groups[i][j];
+    //     delete[] permutation_groups[i];
+    // }
+    // delete[] permutation_groups;
+    // for (int j = 0;j < pow;j++) delete[] permutation_groups_size[j];
+    // delete[] permutation_groups_size;
+    // delete[] groups_cnt;
 
-    for (int i = 0;i < pow;i++) {
-        for (int j = 0;j < size;j++) delete[] permutation_groups[i][j];
-        delete[] permutation_groups[i];
-    }
-    delete[] permutation_groups;
-    for (int j = 0;j < pow;j++) delete[] permutation_groups_size[j];
-    delete[] permutation_groups_size;
-    delete[] groups_cnt;
-
-    for (int i=0;i<pow;i++) delete[] isomorphism_vec[i];
-    delete[] isomorphism_vec;
+    // for (int i=0;i<pow;i++) delete[] isomorphism_vec[i];
+    // delete[] isomorphism_vec;
     return rest_size;
 }
 
@@ -657,12 +633,9 @@ void Schedule::aggressive_optimize_dfs(Pattern base_dag, int** isomorphism_vec, 
     for (int i = 2; i <= size; ++i) pow *= i;
     for (int i = 0; i < iso_size; ) {
         Pattern test_dag(base_dag);
-        int* iso = new int[size];
-        memcpy(iso, isomorphism_vec[i], sizeof(int)*size);
         for (int j=0; j<ordered_size; j++) {
-            test_dag.add_ordered_edge(iso[ordered_first[j]], iso[ordered_second[j]]);
+            test_dag.add_ordered_edge(isomorphism_vec[i][ordered_first[j]], isomorphism_vec[i][ordered_second[j]]);
         }
-        delete[] iso;
         if (test_dag.is_dag() == false) {
             for (int j=i+1; j<iso_size; j++) {
                 memcpy(isomorphism_vec[j-1], isomorphism_vec[j], sizeof(int)*size);
@@ -702,7 +675,7 @@ void Schedule::aggressive_optimize_dfs(Pattern base_dag, int** isomorphism_vec, 
                 for (int j = 0;j < pow;j++) {
                     next_permutation_groups_size[j] = new int[size];
                 }
-                int* next_groups_cnt = new int[pow];
+                int next_groups_cnt[pow];
                 memcpy(next_permutation_groups, permutation_groups, sizeof(int)*size*size*pow);
                 memcpy(next_permutation_groups_size, permutation_groups_size, sizeof(int)*size*pow);
                 memcpy(next_groups_cnt, groups_cnt, sizeof(int)*pow);
@@ -712,8 +685,8 @@ void Schedule::aggressive_optimize_dfs(Pattern base_dag, int** isomorphism_vec, 
                 memcpy(next_isomorphism_vec, isomorphism_vec, sizeof(int)*size*pow);
                 int iso_size_t = iso_size;
 
-                int* next_ordered_first = new int[size];
-                int* next_ordered_second = new int[size];
+                int next_ordered_first[size];
+                int next_ordered_second[size];
                 memcpy(next_ordered_first, ordered_first, sizeof(int)*(ordered_size+1));
                 memcpy(next_ordered_second, ordered_second, sizeof(int)*(ordered_size+1));
                 int next_ordered_size = ordered_size;
@@ -731,25 +704,20 @@ void Schedule::aggressive_optimize_dfs(Pattern base_dag, int** isomorphism_vec, 
                 next_ordered_first[ordered_size] = found_pair.first;
                 next_ordered_second[ordered_size] = found_pair.second;
                 next_ordered_size++;
-                std::cout << " pairs: " << found_pair.first << " " << found_pair.second << std::endl;
                 next_base_dag.add_ordered_edge(found_pair.first, found_pair.second);
 
                 aggressive_optimize_dfs(next_base_dag, next_isomorphism_vec, iso_size_t, next_permutation_groups, next_permutation_groups_size, next_groups_cnt, next_ordered_first, next_ordered_second, ordered_size, restricts_first, restricts_second, restricts_size, rest_size);
-                
-                delete[] next_ordered_first;
-                delete[] next_ordered_second;
 
-                for (int i = 0;i < pow;i++) {
-                    for (int j = 0;j < size;j++) delete[] next_permutation_groups[i][j];
-                    delete[] next_permutation_groups[i];
-                }
-                delete[] next_permutation_groups;
-                for (int j = 0;j < pow;j++) delete[] next_permutation_groups_size[j];
-                delete[] next_permutation_groups_size;
-                delete[] next_groups_cnt;
+                // for (int i = 0;i < pow;i++) {
+                //     for (int j = 0;j < size;j++) delete[] next_permutation_groups[i][j];
+                //     delete[] next_permutation_groups[i];
+                // }
+                // delete[] next_permutation_groups;
+                // for (int j = 0;j < pow;j++) delete[] next_permutation_groups_size[j];
+                // delete[] next_permutation_groups_size;
 
-                for (int j=0; j<pow; j++) delete[] next_isomorphism_vec[j];
-                delete[] next_isomorphism_vec;
+                // for (int j=0; j<pow; j++) delete[] next_isomorphism_vec[j];
+                // delete[] next_isomorphism_vec;
             }
         }
         if (two_element_number >= 1) {
@@ -786,25 +754,24 @@ int Schedule::get_isomorphism_vec(int** isomorphism_vec) const {
             memcpy(isomorphism_vec[iso_size], v, sizeof(int)*size);
             iso_size++;
         }
-        delete[] v;
+        // delete[] v;
     }
 
-    for (int j=0; j<iso_size; j++) delete[] vec[j];
-    delete[] vec;
+    // for (int j=0; j<iso_size; j++) delete[] vec[j];
+    // delete[] vec;
     return iso_size;
 }
 
 void Schedule::get_full_permutation(int** vec) const {
     int pow = 1;
     for (int i = 2; i <= size; ++i) pow *= i;
-    int* tmp = new int[size];
+    int tmp[size];
     for (int i=0; i<size; i++) tmp[i] = i;
     memcpy(vec[0], tmp, sizeof(int)*size);
     for (int i=1; i<pow; i++) {
         std::next_permutation(tmp, tmp+size);
         memcpy(vec[i], tmp, sizeof(int)*size);
     }
-    delete[] tmp;
 }
 
 // 计算置换群 like: (A)(B,C)(D)
@@ -824,7 +791,6 @@ int Schedule::calc_permutation_group(int* vec, int size, int** perm_group, int* 
                 perm_group_size[j]++;
                 x = vec[x];
             }
-            // memcpy(perm_group[j], tmp_vec, sizeof(int)*perm_group_size[j]);
             j++;
         }
     }
@@ -833,21 +799,16 @@ int Schedule::calc_permutation_group(int* vec, int size, int** perm_group, int* 
 
 void Schedule::init_in_exclusion_optimize() {
     int optimize_num = in_exclusion_optimize_num;
-    
     assert( in_exclusion_optimize_num > 1);
-
-    int* id;
-    id = new int[ optimize_num ];
-
-    int* in_exclusion_val;
-    in_exclusion_val = new int[ optimize_num * 2];
+    int id[optimize_num];
+    int in_exclusion_val[optimize_num * 2];
 
     for (int n = 1; n <= optimize_num; ++n) {
         DisjointSetUnion dsu(n);
         int m = n * (n - 1) / 2;
 
-        in_exclusion_val[ 2 * n - 2 ] = 0;
-        in_exclusion_val[ 2 * n - 1 ] = 0;
+        in_exclusion_val[2 * n - 2 ] = 0;
+        in_exclusion_val[2 * n - 1 ] = 0;
 
         if (n == 1) {
             ++in_exclusion_val[0];
@@ -879,14 +840,11 @@ void Schedule::init_in_exclusion_optimize() {
     in_exclusion_optimize_val.clear();
 
     get_in_exclusion_optimize_group(0, id, 0, in_exclusion_val);
-
-    delete[] id;
-    delete[] in_exclusion_val;
 }
 
 void Schedule::get_in_exclusion_optimize_group(int depth, int* id, int id_cnt, int* in_exclusion_val) {
     if (depth == in_exclusion_optimize_num) {
-        int* opt_size = new int[id_cnt];
+        int opt_size[id_cnt];
         for (int i = 0; i < id_cnt; ++i) opt_size[i] = 0;
         for (int i = 0; i < in_exclusion_optimize_num; ++i) opt_size[id[i]] ++;
         int val[2];
@@ -911,8 +869,6 @@ void Schedule::get_in_exclusion_optimize_group(int depth, int* id, int id_cnt, i
 
         in_exclusion_optimize_group.push_back(group);
         in_exclusion_optimize_val.push_back( val[0] - val[1] );
-
-        delete[] opt_size;
         return;
     }
     
@@ -1001,25 +957,21 @@ double Schedule::our_estimate_schedule_restrict(int* order, int* restrict_first,
     int rank[size];
     for (int i = 0; i < size; ++i) rank[order[i]] = i;
     
-    int* cur_adj_mat;
-    cur_adj_mat = new int[size*size];
+    int cur_adj_mat[size*size];
     for (int i = 0; i < size; ++i)
         for (int j = 0; j < size; ++j)
             cur_adj_mat[INDEX(rank[i], rank[j], size)] = adj_mat[INDEX(i, j, size)];
 
-    std::vector<std::pair<int, int>> restricts(restrict_size);
-    for (int i=0; i<restrict_size; i++) restricts.push_back({restrict_first[i], restrict_second[i]});
-    int restricts_size = restricts.size();
-    std::sort(restricts.begin(), restricts.end());
+    quickSort(restrict_first, restrict_second, 0, restrict_size-1);
 
-    double sum[restricts_size];
-    for (int i = 0; i < restricts_size; ++i) sum[i] = 0;
+    double sum[restrict_size];
+    for (int i = 0; i < restrict_size; ++i) sum[i] = 0;
     
     int tmp[size];
     for (int i = 0; i < size; ++i) tmp[i] = i;
     do {
-        for (int i = 0; i < restricts_size; ++i)
-            if (tmp[restricts[i].first] > tmp[restricts[i].second]) {
+        for (int i = 0; i < restrict_size; ++i)
+            if (tmp[restrict_first[i]] > tmp[restrict_second[i]]) {
                 sum[i] += 1;
             }
             else break;
@@ -1027,13 +979,15 @@ double Schedule::our_estimate_schedule_restrict(int* order, int* restrict_first,
     
     double total = 1;
     for (int i = 2; i <= size; ++i) total *= i;
-    for (int i = 0; i < restricts_size; ++i)
+    for (int i = 0; i < restrict_size; ++i)
         sum[i] = sum[i] /total;
-    for (int i = restricts_size - 1; i > 0; --i)
+    for (int i = restrict_size - 1; i > 0; --i)
         sum[i] /= sum[i - 1];
 
-    std::vector<int> invariant_size[size];
-    for (int i = 0; i < size; ++i) invariant_size[i].clear();
+    int** invariant_size = new int*[size];
+    for (int i=0; i<size; i++) invariant_size[i] = new int[size];
+    int* invariant_size_cnt = new int[size];
+    for (int i=0; i<size; i++) invariant_size_cnt[i] = 0;
     
     double val = 1;
     for (int i = size - 1; i >= 0; --i) {
@@ -1047,16 +1001,19 @@ double Schedule::our_estimate_schedule_restrict(int* order, int* restrict_first,
                 ++cnt_backward;
 
         int c = cnt_forward;
-        for (int j = i - 1; j >= 0; --j)
-            if (cur_adj_mat[INDEX(j, i, size)])
-                invariant_size[j].push_back(c--);
+        for (int j = i - 1; j >= 0; --j) {
+            if (cur_adj_mat[INDEX(j, i, size)]) {
+                invariant_size[j][invariant_size_cnt[j]] = c--;
+                invariant_size_cnt[j]++;
+            }
+        }
 
-        for (int j = 0; j < (int)invariant_size[i].size(); ++j)
+        for (int j = 0; j < invariant_size_cnt[i]; ++j)
             if (invariant_size[i][j] > 1) 
                 val += p_size[1] * pp_size[invariant_size[i][j] - 2] + p_size[1];
         val += 1;
-        for (int j = 0; j < restricts_size; ++j)
-            if (restricts[j].second == i)
+        for (int j = 0; j < restrict_size; ++j)
+            if (restrict_second[j] == i)
                 val *=  sum[j];
         if (i ) {
             val *= p_size[1] * pp_size[ cnt_forward - 1 ];
@@ -1065,8 +1022,6 @@ double Schedule::our_estimate_schedule_restrict(int* order, int* restrict_first,
             val *= p_size[0];
         }
     }
-    delete[] cur_adj_mat;
-
     return val;
 }
 

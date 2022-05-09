@@ -24,8 +24,8 @@ Prefix::Prefix() {
 }
 
 Prefix::~Prefix() {
-    if (data != nullptr)
-        delete[] data;
+    // if (data != nullptr)
+    //     delete[] data;
 }
 
 void Prefix::init(int input_size, const int* input_data) {

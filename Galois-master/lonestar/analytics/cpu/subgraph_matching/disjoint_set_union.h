@@ -25,9 +25,9 @@ DisjointSetUnion::DisjointSetUnion(int n) {
 }
 
 DisjointSetUnion::~DisjointSetUnion() {
-    if( size > 0) {
-        delete[] father;
-    }
+    // if( size > 0) {
+    //     delete[] father;
+    // }
 }
 
 void DisjointSetUnion::init() {

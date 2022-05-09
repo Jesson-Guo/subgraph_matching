@@ -59,7 +59,7 @@ Pattern::Pattern(int _size, char *buffer) {
 
 Pattern::~Pattern()
 {
-    delete[] adj_mat;
+    // delete[] adj_mat;
 }
 
 Pattern::Pattern(const Pattern& p)

@@ -63,8 +63,8 @@ void VertexSet::init(int input_size)
 
 void VertexSet::init(int input_size, int* input_data)
 {
-    if (allocate == true && data != nullptr)
-        delete[] data;
+    // if (allocate == true && data != nullptr)
+    //     delete[] data;
     size = input_size;
     data = input_data;
     allocate = false;
@@ -76,10 +76,9 @@ void VertexSet::copy(int input_size, const int* input_data)
     for(int i = 0; i < input_size; ++i) data[i] = input_data[i];
 }
 
-VertexSet::~VertexSet()
-{
-    if (allocate == true && data != nullptr)
-        delete[] data;
+VertexSet::~VertexSet() {
+    // if (allocate == true && data != nullptr)
+    //     delete[] data;
 }
 
 void VertexSet::intersection(const VertexSet& set0, const VertexSet& set1, int min_vertex, bool clique)
