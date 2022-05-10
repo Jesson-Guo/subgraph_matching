@@ -30,7 +30,7 @@ typedef Graph::GraphNode GNode;
 #include <iostream>
 #include <algorithm>
 
-void pattern_matching_aggressive_func(Graph& graph, const Schedule &schedule, VertexSet* vertex_set, VertexSet &subtraction_set, VertexSet &tmp_set, uint64_t max_degree, galois::GAccumulator<long long>& local_ans, int depth) {
+void pattern_matching_aggressive_func(Graph& graph, const Schedule &schedule, VertexSet* vertex_set, VertexSet &subtraction_set, VertexSet &tmp_set, uint64_t max_degree, long long& local_ans, int depth) {
     int loop_set_prefix_id = schedule.get_loop_set_prefix_id(depth); // @@@
     int loop_size = vertex_set[loop_set_prefix_id].get_size();
     if (loop_size <= 0)
@@ -125,15 +125,16 @@ void pattern_matching_aggressive_func(Graph& graph, const Schedule &schedule, Ve
 }
 
 long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_degree) {
-    VertexSet* vertex_set = new VertexSet[schedule.get_total_prefix_num()];
-    VertexSet subtraction_set;
-    VertexSet tmp_set;
-    subtraction_set.init();
-    galois::GAccumulator<long long> local_ans;
+    std::atomic<long long> global_ans = 0;
     // TODO : try different chunksize
     galois::do_all(
         galois::iterate(graph),
         [&](uint64_t vertex) {
+            long long local_ans = 0;
+            VertexSet* vertex_set = new VertexSet[schedule.get_total_prefix_num()];
+            VertexSet subtraction_set;
+            VertexSet tmp_set;
+            subtraction_set.init();
             for (int prefix_id = schedule.get_last(0); prefix_id != -1; prefix_id = schedule.get_next(prefix_id)) {
                 vertex_set[prefix_id].build_vertex_set(
                     schedule, vertex_set, &graph.getData(vertex).adj_node[0], graph.getData(vertex).degree, prefix_id);
@@ -141,16 +142,16 @@ long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_
             subtraction_set.push_back(vertex);
             pattern_matching_aggressive_func(graph, schedule, vertex_set, subtraction_set, tmp_set, max_degree, local_ans, 1);
             subtraction_set.pop_back();
+            global_ans += local_ans;
+            // delete[] vertex_set;
         },
         galois::loopname("pattern matching"),
         galois::chunk_size<CHUNK_SIZE>(),
         galois::steal(),
         galois::no_stats()
     );
-    delete[] vertex_set;
-    std::cout << "local ans: " << local_ans.reduce() << std::endl;
-    long long global_ans = local_ans.reduce();
-    return global_ans / schedule.get_in_exclusion_optimize_redundancy();
+    std::cout << "global ans: " << global_ans.load() << std::endl;
+    return global_ans.load() / schedule.get_in_exclusion_optimize_redundancy();
 }
 
 // Schedule functions
