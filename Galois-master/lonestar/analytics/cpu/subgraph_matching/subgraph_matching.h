@@ -156,7 +156,7 @@ long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_
 
 // Schedule functions
 Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performance_modeling_type, int restricts_type, bool use_in_exclusion_optimize, Graph& complete, uint64_t _max_degree, int v_cnt, unsigned int e_cnt, long long tri_cnt) {
-    if( performance_modeling_type != 0 && tri_cnt == -1) {
+    if (performance_modeling_type != 0 && tri_cnt == -1) {
         printf("Fatal: Can not use performance modeling if not have triangle number of this dataset.\n");
         fflush(stdout);
         assert(0);
@@ -176,13 +176,13 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
     //If we use performance_modeling, we may change the order of vertex,
     //the best order produced by performance_modeling(...) is saved in best_order[]
     //Finally, we use best_order[] to relocate adj_mat
-    if( performance_modeling_type != 0) { 
+    if (performance_modeling_type != 0) { 
         unsigned int pow = 1;
         for (int i = 2; i <= size; ++i) pow *= i;
         
         std::vector< std::vector<int> > candidate_permutations;
         candidate_permutations.clear();
-        
+
         bool use[size];
         for (int i = 0; i < size; ++i) use[i] = false;
         std::vector<int> tmp_vec;
@@ -191,16 +191,16 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
 
         remove_invalid_permutation(candidate_permutations);
 
-        if(performance_modeling_type == 1) {
+        if (performance_modeling_type == 1) {
             //reduce candidates
             int max_val = 0;
-            for(const auto &vec : candidate_permutations) {
+            for (const auto &vec : candidate_permutations) {
                 max_val = std::max(max_val, get_vec_optimize_num(vec));
             }
             std::vector< std::vector<int> > tmp;
             tmp.clear();
-            for(const auto &vec : candidate_permutations) 
-                if( get_vec_optimize_num(vec) == max_val) {
+            for (const auto &vec : candidate_permutations) 
+                if (get_vec_optimize_num(vec) == max_val) {
                     tmp.push_back(vec);
                 }
             candidate_permutations = tmp;
@@ -209,23 +209,22 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         int *best_order = new int[size];
         double min_val;
         bool have_best = false;
-        
 
-        for(const auto &vec : candidate_permutations) {
+        for (const auto &vec : candidate_permutations) {
             int rank[size];
-            for(int i = 0; i < size; ++i) rank[vec[i]] = i;
+            for (int i = 0; i < size; ++i) rank[vec[i]] = i;
         
             int* cur_adj_mat;
             cur_adj_mat = new int[size*size];
-            for(int i = 0; i < size; ++i)
-                for(int j = 0; j < size; ++j)
+            for (int i = 0; i < size; ++i)
+                for (int j = 0; j < size; ++j)
                     cur_adj_mat[INDEX(rank[i], rank[j], size)] = adj_mat[INDEX(i, j, size)];
 
             std::vector< std::vector< std::pair<int,int> > > restricts_vector;
 
             restricts_vector.clear();
 
-            if(restricts_type == 1) {
+            if (restricts_type == 1) {
                 restricts_generate(cur_adj_mat, restricts_vector, complete, max_degree);
             }
             else {
@@ -238,16 +237,16 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
                 restricts_vector.push_back(pairs);
             }
 
-            if( restricts_vector.size() == 0) {
+            if (restricts_vector.size() == 0) {
                 std::vector< std::pair<int,int> > Empty;
                 Empty.clear();
 
                 double val;
-                if(performance_modeling_type == 1) {
+                if (performance_modeling_type == 1) {
                     val = our_estimate_schedule_restrict(vec, Empty, v_cnt, e_cnt, tri_cnt);
                 }
                 else {
-                    if(performance_modeling_type == 2) {
+                    if (performance_modeling_type == 2) {
                         val = GraphZero_estimate_schedule_restrict(vec, Empty, v_cnt, e_cnt);
                     }
                     else {
@@ -255,22 +254,22 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
                     }
                 }
 
-                if(have_best == false || val < min_val) {
+                if (have_best == false || val < min_val) {
                     have_best = true;
                     min_val = val;
-                    for(int i = 0; i < size; ++i) best_order[i] = vec[i];
+                    for (int i = 0; i < size; ++i) best_order[i] = vec[i];
                     best_pairs = Empty;
                 }
             }
 
 
-            for(const auto& pairs : restricts_vector) {
+            for (const auto& pairs : restricts_vector) {
                 double val;
-                if(performance_modeling_type == 1) {
+                if (performance_modeling_type == 1) {
                     val = our_estimate_schedule_restrict(vec, pairs, v_cnt, e_cnt, tri_cnt);
                 }
                 else {
-                    if(performance_modeling_type == 2) {
+                    if (performance_modeling_type == 2) {
                         val = GraphZero_estimate_schedule_restrict(vec, pairs, v_cnt, e_cnt);
                     }
                     else {
@@ -278,10 +277,10 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
                     }
                 }
 
-                if(have_best == false || val < min_val) {
+                if (have_best == false || val < min_val) {
                     have_best = true;
                     min_val = val;
-                    for(int i = 0; i < size; ++i) best_order[i] = vec[i];
+                    for (int i = 0; i < size; ++i) best_order[i] = vec[i];
                     best_pairs = pairs;
                 }
             }
@@ -289,25 +288,25 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         }
 
         int rank[size];
-        for(int i = 0; i < size; ++i) rank[best_order[i]] = i;
+        for (int i = 0; i < size; ++i) rank[best_order[i]] = i;
 
         const int* pattern_adj_mat = pattern.get_adj_mat_ptr();
-        for(int i = 0; i < size; ++i)
-            for(int j = 0; j < size; ++j)
+        for (int i = 0; i < size; ++i)
+            for (int j = 0; j < size; ++j)
                 adj_mat[INDEX(rank[i], rank[j], size)] = pattern_adj_mat[INDEX(i, j, size)]; 
         delete[] best_order;
     }
     else {
         std::vector< int > I;
         I.clear();
-        for(int i = 0; i < size; ++i) I.push_back(i);
+        for (int i = 0; i < size; ++i) I.push_back(i);
 
         std::vector< std::vector< std::pair<int,int> > > restricts_vector;
         restricts_vector.clear();
 
-        if(restricts_type != 0) {
+        if (restricts_type != 0) {
 
-            if(restricts_type == 1) {
+            if (restricts_type == 1) {
                 restricts_generate(adj_mat, restricts_vector, complete, max_degree);
             }
             else {
@@ -322,15 +321,15 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         bool have_best = false;
         double min_val;
 
-        for(const auto& pairs : restricts_vector) {
+        for (const auto& pairs : restricts_vector) {
             double val;
-            if(restricts_type == 1) {
+            if (restricts_type == 1) {
                 val = our_estimate_schedule_restrict(I, pairs, v_cnt, e_cnt, tri_cnt);
             }
             else {
                 val = GraphZero_estimate_schedule_restrict(I, pairs, v_cnt, e_cnt);
             }
-            if(have_best == false || val < min_val) {
+            if (have_best == false || val < min_val) {
                 have_best = true;
                 min_val = val;
                 best_pairs = pairs;
@@ -339,12 +338,12 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
 
     }
 
-    if( use_in_exclusion_optimize) {
+    if (use_in_exclusion_optimize) {
         std::vector<int> I;
         I.clear();
-        for(int i = 0; i < size; ++i) I.push_back(i);
+        for (int i = 0; i < size; ++i) I.push_back(i);
         in_exclusion_optimize_num = get_vec_optimize_num(I);
-        if( in_exclusion_optimize_num <= 1) {
+        if (in_exclusion_optimize_num <= 1) {
             printf("Can not use in_exclusion_optimize with this schedule\n");
             in_exclusion_optimize_num = 0;
         }
@@ -396,7 +395,7 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
     }
 
     build_loop_invariant();
-    if( restricts_type != 0) add_restrict(best_pairs);
+    if (restricts_type != 0) add_restrict(best_pairs);
     
     set_in_exclusion_optimize_redundancy(complete, max_degree);
 }
@@ -465,11 +464,11 @@ Schedule::~Schedule() {
 
 int Schedule::get_max_degree() const {
     int mx = 0;
-    for(int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i) {
         int cnt = 0;
-        for(int j = 0; j < size; ++j)
+        for (int j = 0; j < size; ++j)
             cnt += adj_mat[INDEX(i,j,size)];
-        if(cnt > mx) mx = cnt;
+        if (cnt > mx) mx = cnt;
     }
     return mx;
 }
@@ -509,18 +508,18 @@ int Schedule::find_father_prefix(int data_size, const int* data) {
 
 void Schedule::add_restrict(const std::vector<std::pair<int, int>>& restricts) {
     restrict_pair = restricts;
-    for(unsigned int i = 0; i < restrict_pair.size(); ) {
+    for (unsigned int i = 0; i < restrict_pair.size(); ) {
         bool tag = true;
-        for(unsigned int j = 0; j < restrict_pair.size(); ++j) {
-            if(i != j && restrict_pair[j].first == restrict_pair[i].first) 
-                for(unsigned int k = 0; k < restrict_pair.size(); ++k)
-                    if( i != k && j != k && restrict_pair[k].second == restrict_pair[i].second && restrict_pair[j].second == restrict_pair[k].first ) {
+        for (unsigned int j = 0; j < restrict_pair.size(); ++j) {
+            if (i != j && restrict_pair[j].first == restrict_pair[i].first) 
+                for (unsigned int k = 0; k < restrict_pair.size(); ++k)
+                    if (i != k && j != k && restrict_pair[k].second == restrict_pair[i].second && restrict_pair[j].second == restrict_pair[k].first ) {
                         tag = false;
                         break;
                     }
-            if(tag == false) break;
+            if (tag == false) break;
         }
-        if(tag == false) {
+        if (tag == false) {
             restrict_pair.erase(restrict_pair.begin() + i);
         }
         else ++i;
@@ -611,7 +610,7 @@ void Schedule::aggressive_optimize_dfs(Pattern base_dag, std::vector<std::vector
             ++i;
     }
 
-    if(isomorphism_vec.size() == 1) {
+    if (isomorphism_vec.size() == 1) {
         ordered_pairs_vector.push_back(ordered_pairs);
         return;
     }
@@ -638,7 +637,7 @@ void Schedule::aggressive_optimize_dfs(Pattern base_dag, std::vector<std::vector
                 
                 aggressive_optimize_dfs(next_base_dag, next_isomorphism_vec, next_permutation_groups, next_ordered_pairs, ordered_pairs_vector);
             }
-        if( two_element_number >= 1) {
+        if (two_element_number >= 1) {
             break;
         }
         else {
@@ -808,34 +807,34 @@ void Schedule::init_in_exclusion_optimize() {
     int* in_exclusion_val;
     in_exclusion_val = new int[ optimize_num * 2];
 
-    for(int n = 1; n <= optimize_num; ++n) {
+    for (int n = 1; n <= optimize_num; ++n) {
         DisjointSetUnion dsu(n);
         int m = n * (n - 1) / 2;
 
         in_exclusion_val[ 2 * n - 2 ] = 0;
         in_exclusion_val[ 2 * n - 1 ] = 0;
 
-        if( n == 1) {
+        if (n == 1) {
             ++in_exclusion_val[0];
             continue;
         }
 
         std::pair<int,int> edge[m];
         int e_cnt = 0;
-        for(int i = 0; i < n; ++i)
-            for(int j = 0; j < i; ++j)
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < i; ++j)
                 edge[e_cnt++] = std::make_pair(i,j);
 
-        for(int s = 0; s < (1<<m); ++s) {
+        for (int s = 0; s < (1<<m); ++s) {
             dsu.init();
             int bit_cnt = 0;
-            for(int i = 0; i < m; ++i) 
-                if( s & (1<<i)) {
+            for (int i = 0; i < m; ++i) 
+                if (s & (1<<i)) {
                     ++bit_cnt;
                     dsu.merge(edge[i].first, edge[i].second);
                 }
-            if( dsu.get_set_size() == 1) {
-                if( bit_cnt & 1) ++in_exclusion_val[2 * n -1];
+            if (dsu.get_set_size() == 1) {
+                if (bit_cnt & 1) ++in_exclusion_val[2 * n -1];
                 else ++in_exclusion_val[ 2 * n - 2];
             }
         }
@@ -851,16 +850,16 @@ void Schedule::init_in_exclusion_optimize() {
 }
 
 void Schedule::get_in_exclusion_optimize_group(int depth, int* id, int id_cnt, int* in_exclusion_val) {
-    if( depth == in_exclusion_optimize_num) {
+    if (depth == in_exclusion_optimize_num) {
         int* size = new int[id_cnt];
-        for(int i = 0; i < id_cnt; ++i)
+        for (int i = 0; i < id_cnt; ++i)
             size[i] = 0;
-        for(int i = 0; i < in_exclusion_optimize_num; ++i)
+        for (int i = 0; i < in_exclusion_optimize_num; ++i)
             size[ id[i] ] ++;
         int val[2];
         val[0] = in_exclusion_val[ size[0] * 2 - 2 ];
         val[1] = in_exclusion_val[ size[0] * 2 - 1 ];
-        for(int i = 1; i < id_cnt; ++i) {
+        for (int i = 1; i < id_cnt; ++i) {
             int tmp0 = val[0];
             int tmp1 = val[1];
 
@@ -870,11 +869,11 @@ void Schedule::get_in_exclusion_optimize_group(int depth, int* id, int id_cnt, i
 
         std::vector< std::vector<int> > group;
         group.clear();
-        for(int i = 0; i < id_cnt; ++i) {
+        for (int i = 0; i < id_cnt; ++i) {
             std::vector<int> cur;
             cur.clear();
-            for(int j = 0; j < in_exclusion_optimize_num; ++j)
-                if( id[j] == i) cur.push_back(j);
+            for (int j = 0; j < in_exclusion_optimize_num; ++j)
+                if (id[j] == i) cur.push_back(j);
             group.push_back(cur);
         }
 
@@ -889,7 +888,7 @@ void Schedule::get_in_exclusion_optimize_group(int depth, int* id, int id_cnt, i
 
     get_in_exclusion_optimize_group(depth + 1, id, id_cnt + 1, in_exclusion_val);
     
-    for(int i = 0; i < id_cnt; ++i) {
+    for (int i = 0; i < id_cnt; ++i) {
         id[depth] = i;
         get_in_exclusion_optimize_group(depth + 1, id, id_cnt, in_exclusion_val);
     }
@@ -923,28 +922,28 @@ void Schedule::restricts_generate(const int* cur_adj_mat, std::vector<std::vecto
 
 int Schedule::get_vec_optimize_num(const std::vector<int>& vec) {
     bool is_valid = true;
-    for(int i = 1; i < size; ++i) {
+    for (int i = 1; i < size; ++i) {
         bool have_edge = false;
-        for(int j = 0; j < i; ++j)
-            if( adj_mat[INDEX(vec[i], vec[j], size)]) {
+        for (int j = 0; j < i; ++j)
+            if (adj_mat[INDEX(vec[i], vec[j], size)]) {
                 have_edge = true;
                 break;
             }
-        if( have_edge == false) {
+        if (have_edge == false) {
             is_valid = false;
             break;
         }
     }
-    if( !is_valid) return -1;
+    if (!is_valid) return -1;
 
-    for(int k = 2; k <= size; ++k) {
+    for (int k = 2; k <= size; ++k) {
         bool flag = true;
-        for(int i = size - k + 1; i < size; ++i)
-            if(adj_mat[INDEX(vec[size - k], vec[i], size)]) {
+        for (int i = size - k + 1; i < size; ++i)
+            if (adj_mat[INDEX(vec[size - k], vec[i], size)]) {
                 flag = false;
                 break;
             }
-        if(flag == false) return k - 1;
+        if (flag == false) return k - 1;
     }
     assert(0);
     return -1;
@@ -960,21 +959,21 @@ double Schedule::our_estimate_schedule_restrict(const std::vector<int> &order, c
     double p1 = tri_cnt * 1.0 * v_cnt / e_cnt / e_cnt; 
     
     p_size[0] = v_cnt;
-    for(int i = 1;i < max_degree; ++i) {
+    for (int i = 1;i < max_degree; ++i) {
         p_size[i] = p_size[i-1] * p0;
     }
     pp_size[0] = 1;
-    for(int i = 1; i < max_degree; ++i) {
+    for (int i = 1; i < max_degree; ++i) {
         pp_size[i] = pp_size[i-1] * p1;
     }
 
     int rank[size];
-    for(int i = 0; i < size; ++i) rank[order[i]] = i;
+    for (int i = 0; i < size; ++i) rank[order[i]] = i;
     
     int* cur_adj_mat;
     cur_adj_mat = new int[size*size];
-    for(int i = 0; i < size; ++i)
-        for(int j = 0; j < size; ++j)
+    for (int i = 0; i < size; ++i)
+        for (int j = 0; j < size; ++j)
             cur_adj_mat[INDEX(rank[i], rank[j], size)] = adj_mat[INDEX(i, j, size)];
 
     std::vector< std::pair<int,int> > restricts = pairs;
@@ -982,52 +981,52 @@ double Schedule::our_estimate_schedule_restrict(const std::vector<int> &order, c
     std::sort(restricts.begin(), restricts.end());
 
     double sum[restricts_size];
-    for(int i = 0; i < restricts_size; ++i) sum[i] = 0;
+    for (int i = 0; i < restricts_size; ++i) sum[i] = 0;
     
     int tmp[size];
-    for(int i = 0; i < size; ++i) tmp[i] = i;
+    for (int i = 0; i < size; ++i) tmp[i] = i;
     do {
-        for(int i = 0; i < restricts_size; ++i)
-            if(tmp[restricts[i].first] > tmp[restricts[i].second]) {
+        for (int i = 0; i < restricts_size; ++i)
+            if (tmp[restricts[i].first] > tmp[restricts[i].second]) {
                 sum[i] += 1;
             }
             else break;
     } while( std::next_permutation(tmp, tmp + size));
     
     double total = 1;
-    for(int i = 2; i <= size; ++i) total *= i;
-    for(int i = 0; i < restricts_size; ++i)
+    for (int i = 2; i <= size; ++i) total *= i;
+    for (int i = 0; i < restricts_size; ++i)
         sum[i] = sum[i] /total;
-    for(int i = restricts_size - 1; i > 0; --i)
+    for (int i = restricts_size - 1; i > 0; --i)
         sum[i] /= sum[i - 1];
 
     std::vector<int> invariant_size[size];
-    for(int i = 0; i < size; ++i) invariant_size[i].clear();
+    for (int i = 0; i < size; ++i) invariant_size[i].clear();
     
     double val = 1;
-    for(int i = size - 1; i >= 0; --i) {
+    for (int i = size - 1; i >= 0; --i) {
         int cnt_forward = 0;
         int cnt_backward = 0;
-        for(int j = 0; j < i; ++j)
-            if(cur_adj_mat[INDEX(j, i, size)])
+        for (int j = 0; j < i; ++j)
+            if (cur_adj_mat[INDEX(j, i, size)])
                 ++cnt_forward;
-        for(int j = i + 1; j < size; ++j)
-            if(cur_adj_mat[INDEX(j, i, size)])
+        for (int j = i + 1; j < size; ++j)
+            if (cur_adj_mat[INDEX(j, i, size)])
                 ++cnt_backward;
 
         int c = cnt_forward;
-        for(int j = i - 1; j >= 0; --j)
-            if(cur_adj_mat[INDEX(j, i, size)])
+        for (int j = i - 1; j >= 0; --j)
+            if (cur_adj_mat[INDEX(j, i, size)])
                 invariant_size[j].push_back(c--);
 
-        for(int j = 0; j < (int)invariant_size[i].size(); ++j)
-            if(invariant_size[i][j] > 1) 
+        for (int j = 0; j < (int)invariant_size[i].size(); ++j)
+            if (invariant_size[i][j] > 1) 
                 val += p_size[1] * pp_size[invariant_size[i][j] - 2] + p_size[1];
         val += 1;
-        for(int j = 0; j < restricts_size; ++j)
-            if(restricts[j].second == i)
+        for (int j = 0; j < restricts_size; ++j)
+            if (restricts[j].second == i)
                 val *=  sum[j];
-        if( i ) {
+        if (i ) {
             val *= p_size[1] * pp_size[ cnt_forward - 1 ];
         }
         else {
@@ -1046,17 +1045,17 @@ double Schedule::GraphZero_estimate_schedule_restrict(const std::vector<int> &or
     double p = e_cnt * 1.0 / v_cnt / v_cnt;
     
     p_size[0] = v_cnt;
-    for(int i = 1;i < max_degree; ++i) {
+    for (int i = 1;i < max_degree; ++i) {
         p_size[i] = p_size[i-1] * p;
     }
 
     int rank[size];
-    for(int i = 0; i < size; ++i) rank[order[i]] = i;
+    for (int i = 0; i < size; ++i) rank[order[i]] = i;
     
     int* cur_adj_mat;
     cur_adj_mat = new int[size*size];
-    for(int i = 0; i < size; ++i)
-        for(int j = 0; j < size; ++j)
+    for (int i = 0; i < size; ++i)
+        for (int j = 0; j < size; ++j)
             cur_adj_mat[INDEX(rank[i], rank[j], size)] = adj_mat[INDEX(i, j, size)];
 
     std::vector< std::pair<int,int> > restricts = pairs;
@@ -1064,50 +1063,50 @@ double Schedule::GraphZero_estimate_schedule_restrict(const std::vector<int> &or
     std::sort(restricts.begin(), restricts.end());
     
     double sum[restricts_size];
-    for(int i = 0; i < restricts_size; ++i) sum[i] = 0;
+    for (int i = 0; i < restricts_size; ++i) sum[i] = 0;
     
     int tmp[size];
-    for(int i = 0; i < size; ++i) tmp[i] = i;
+    for (int i = 0; i < size; ++i) tmp[i] = i;
     do {
-        for(int i = 0; i < restricts_size; ++i)
-            if(tmp[restricts[i].first] > tmp[restricts[i].second]) {
+        for (int i = 0; i < restricts_size; ++i)
+            if (tmp[restricts[i].first] > tmp[restricts[i].second]) {
                 sum[i] += 1;
             }
             else break;
     } while( std::next_permutation(tmp, tmp + size));
     
     double total = 1;
-    for(int i = 2; i <= size; ++i) total *= i;
+    for (int i = 2; i <= size; ++i) total *= i;
     
-    for(int i = 0; i < restricts_size; ++i)
+    for (int i = 0; i < restricts_size; ++i)
         sum[i] = sum[i] /total;
-    for(int i = restricts_size - 1; i > 0; --i)
+    for (int i = restricts_size - 1; i > 0; --i)
         sum[i] /= sum[i - 1];
 
     std::vector<int> invariant_size[size];
-    for(int i = 0; i < size; ++i) invariant_size[i].clear();
+    for (int i = 0; i < size; ++i) invariant_size[i].clear();
     
     double val = 1;
-    for(int i = size - 1; i >= 0; --i) {
+    for (int i = size - 1; i >= 0; --i) {
         int cnt_forward = 0;
         int cnt_backward = 0;
-        for(int j = 0; j < i; ++j)
-            if(cur_adj_mat[INDEX(j, i, size)])
+        for (int j = 0; j < i; ++j)
+            if (cur_adj_mat[INDEX(j, i, size)])
                 ++cnt_forward;
-        for(int j = i + 1; j < size; ++j)
-            if(cur_adj_mat[INDEX(j, i, size)])
+        for (int j = i + 1; j < size; ++j)
+            if (cur_adj_mat[INDEX(j, i, size)])
                 ++cnt_backward;
 
         int c = cnt_forward;
-        for(int j = i - 1; j >= 0; --j)
-            if(cur_adj_mat[INDEX(j, i, size)])
+        for (int j = i - 1; j >= 0; --j)
+            if (cur_adj_mat[INDEX(j, i, size)])
                 invariant_size[j].push_back(c--);
 
-        for(int j = 0; j < (int)invariant_size[i].size(); ++j)
-            if(invariant_size[i][j] > 1) 
+        for (int j = 0; j < (int)invariant_size[i].size(); ++j)
+            if (invariant_size[i][j] > 1) 
                 val += p_size[invariant_size[i][j] - 1] + p_size[1];
-        for(int j = 0; j < restricts_size; ++j)
-            if(restricts[j].second == i)
+        for (int j = 0; j < restricts_size; ++j)
+            if (restricts[j].second == i)
                 val *=  sum[j];
         val *= p_size[cnt_forward];
 
@@ -1122,12 +1121,12 @@ double Schedule::Naive_estimate_schedule_restrict(const std::vector<int> &order,
     double p = e_cnt * 2.0 / v_cnt / v_cnt;
 
     int rank[size];
-    for(int i = 0; i < size; ++i) rank[order[i]] = i;
+    for (int i = 0; i < size; ++i) rank[order[i]] = i;
     
     int* cur_adj_mat;
     cur_adj_mat = new int[size*size];
-    for(int i = 0; i < size; ++i)
-        for(int j = 0; j < size; ++j)
+    for (int i = 0; i < size; ++i)
+        for (int j = 0; j < size; ++j)
             cur_adj_mat[INDEX(rank[i], rank[j], size)] = adj_mat[INDEX(i, j, size)];
     
     std::vector< std::pair<int,int> > restricts = pairs;
@@ -1135,40 +1134,40 @@ double Schedule::Naive_estimate_schedule_restrict(const std::vector<int> &order,
     std::sort(restricts.begin(), restricts.end());
     
     double sum[restricts_size];
-    for(int i = 0; i < restricts_size; ++i) sum[i] = 0;
+    for (int i = 0; i < restricts_size; ++i) sum[i] = 0;
     int tmp[size];
     
-    for(int i = 0; i < size; ++i) tmp[i] = i;
+    for (int i = 0; i < size; ++i) tmp[i] = i;
     do {
-        for(int i = 0; i < restricts_size; ++i)
-            if(tmp[restricts[i].first] > tmp[restricts[i].second]) {
+        for (int i = 0; i < restricts_size; ++i)
+            if (tmp[restricts[i].first] > tmp[restricts[i].second]) {
                 sum[i] += 1;
             }
             else break;
     } while( std::next_permutation(tmp, tmp + size));
     
     double total = 1;
-    for(int i = 2; i <= size; ++i) total *= i;
+    for (int i = 2; i <= size; ++i) total *= i;
     
-    for(int i = 0; i < restricts_size; ++i)
+    for (int i = 0; i < restricts_size; ++i)
         sum[i] = sum[i] /total;
-    for(int i = restricts_size - 1; i > 0; --i)
+    for (int i = restricts_size - 1; i > 0; --i)
         sum[i] /= sum[i - 1];
 
     double val = 1;
-    for(int i = size - 1; i >= 0; --i) {
+    for (int i = size - 1; i >= 0; --i) {
         int cnt_forward = 0;
-        for(int j = 0; j < i; ++j)
-            if(cur_adj_mat[INDEX(j, i, size)])
+        for (int j = 0; j < i; ++j)
+            if (cur_adj_mat[INDEX(j, i, size)])
                 ++cnt_forward;
 
-        for(int j = 0; j < restricts_size; ++j)
-            if(restricts[j].second == i)
+        for (int j = 0; j < restricts_size; ++j)
+            if (restricts[j].second == i)
                 val *=  sum[j];
         val *= v_cnt;
-        for(int j = 0; j < i - cnt_forward; ++j)
+        for (int j = 0; j < i - cnt_forward; ++j)
             val *= (1-p);
-        for(int j = 0; j < cnt_forward; ++j)
+        for (int j = 0; j < cnt_forward; ++j)
             val *= p;
     }
 
@@ -1179,22 +1178,22 @@ double Schedule::Naive_estimate_schedule_restrict(const std::vector<int> &order,
 
 // the i's vertex must connect to at lease one of i-1 vertices at front
 void Schedule::remove_invalid_permutation(std::vector<std::vector<int>>& candidate_permutations) {
-    for(unsigned int i = 0; i < candidate_permutations.size(); ) {
+    for (unsigned int i = 0; i < candidate_permutations.size(); ) {
         const auto& vec = candidate_permutations[i];
         bool tag = true;
-        for(int x = 1; x < size; ++x) {
+        for (int x = 1; x < size; ++x) {
             bool have_edge = false;
-            for(int y = 0; y < x; ++y)
-                if(adj_mat[INDEX(vec[x],vec[y],size)]) {
+            for (int y = 0; y < x; ++y)
+                if (adj_mat[INDEX(vec[x],vec[y],size)]) {
                     have_edge = true;
                     break;
                 }
-            if(!have_edge) {
+            if (!have_edge) {
                 tag = false;
                 break;
             }
         }
-        if(tag) {
+        if (tag) {
             ++i;
         }
         else {

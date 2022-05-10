@@ -75,10 +75,6 @@ void baseMatching(Graph& graph, const Pattern p, Graph& complete, const long lon
             }
             std::sort(graph.getData(i).adj_node.begin(), graph.getData(i).adj_node.end());
             graph.getData(i).degree = deg;
-            // if (deg > 0) {
-            //     bitset_degree.set(i);
-            //     bitset_adj_node.set(i);
-            // }
             if (deg > max_deg) {
                 sec_max_deg = max_deg;
                 max_deg = deg;

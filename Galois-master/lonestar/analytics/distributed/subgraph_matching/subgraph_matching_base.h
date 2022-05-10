@@ -95,9 +95,6 @@ void pattern_matching_aggressive_func(Graph& graph, const Schedule& schedule, Ve
                 if (min_vertex > subtraction_set.get_data(schedule.get_restrict_index(i)))
                     min_vertex = subtraction_set.get_data(schedule.get_restrict_index(i));
             const VertexSet& vset = vertex_set[loop_set_prefix_id];
-            // std::vector<int> vset_data = vset.get_data_ptr();
-            // auto lower = std::lower_bound(vset_data.begin(), vset_data.begin() + vset.get_size(), min_vertex);
-            // int size_after_restrict = std::distance(vset_data.begin(), lower);
             int size_after_restrict = std::lower_bound(vset.get_data_ptr(), vset.get_data_ptr() + vset.get_size(), min_vertex) - vset.get_data_ptr();
             if (size_after_restrict > 0) {
                 // 这里可以输出具体的匹配结果
@@ -142,16 +139,16 @@ void pattern_matching_aggressive_func(Graph& graph, const Schedule& schedule, Ve
 }
 
 long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_degree) {
-    VertexSet* vertex_set = new VertexSet[schedule.get_total_prefix_num()];
-    VertexSet subtraction_set;
-    VertexSet tmp_set;
-    subtraction_set.init();
     galois::GAccumulator<long long> local_ans;
+    VertexSet* vertex_set = new VertexSet[schedule.get_total_prefix_num()];
     // TODO : try different chunksize
     const auto& allMasterNodes = graph.masterNodesRange();
     galois::do_all(
         galois::iterate(allMasterNodes),
         [&](uint64_t vertex) {
+            VertexSet subtraction_set;
+            VertexSet tmp_set;
+            subtraction_set.init();
             for (int prefix_id = schedule.get_last(0); prefix_id != -1; prefix_id = schedule.get_next(prefix_id)) {
                 vertex_set[prefix_id].build_vertex_set(
                     schedule, vertex_set, &graph.getData(vertex).adj_node[0], graph.getData(vertex).degree, prefix_id);
@@ -165,8 +162,8 @@ long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_
         galois::steal(),
         galois::no_stats()
     );
-    galois::runtime::getHostBarrier().wait();
     delete[] vertex_set;
+    galois::runtime::getHostBarrier().wait();
     std::cout << "local ans: " << local_ans.reduce() << std::endl;
     galois::DGAccumulator<uint64_t> global_ans;
     global_ans.reset();

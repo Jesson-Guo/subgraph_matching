@@ -44,7 +44,7 @@ void VertexSet::init() {
     else {
         size = 0;
         allocate = true;
-        data = new int[max_intersection_size];
+        data = new int[max_intersection_size+1];
     }
 }
 
@@ -57,7 +57,7 @@ void VertexSet::init(int input_size)
     {
         size = 0;
         allocate = true;
-        data = new int[input_size];
+        data = new int[input_size + 1];
     }
 }
 
@@ -78,8 +78,8 @@ void VertexSet::copy(int input_size, const int* input_data)
 
 VertexSet::~VertexSet()
 {
-    if (allocate == true && data != nullptr)
-        data = nullptr; // delete[] data;
+    // if (allocate == true && data != nullptr)
+    //     delete[] data;
 }
 
 void VertexSet::intersection(const VertexSet& set0, const VertexSet& set1, int min_vertex, bool clique)
