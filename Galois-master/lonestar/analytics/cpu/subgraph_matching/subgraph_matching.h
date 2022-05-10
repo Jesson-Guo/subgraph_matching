@@ -29,6 +29,9 @@ typedef Graph::GraphNode GNode;
 
 #include <iostream>
 #include <algorithm>
+#include <mutex>
+
+std::mutex vertex_mutex;
 
 void quickSort(int* first, int* second, int l, int r) {
     if (l < r) {      
@@ -52,6 +55,16 @@ void quickSort(int* first, int* second, int l, int r) {
         quickSort(first, second, l, i - 1);
         quickSort(first, second, i + 1, r);
     }
+}
+
+void build_vertex_set_with_block(const Schedule& schedule, VertexSet* vertex_set, int* input_data, int input_size, int prefix_id) {
+    std::unique_lock<std::mutex> lk(vertex_mutex);
+    vertex_set[prefix_id].build_vertex_set(schedule, vertex_set, input_data, input_size, prefix_id);
+}
+
+void push_back_mutex(VertexSet& set, int v) {
+    std::unique_lock<std::mutex> lk(vertex_mutex);
+    set.push_back(v);
 }
 
 void pattern_matching_aggressive_func(Graph& graph, const Schedule &schedule, VertexSet* vertex_set, VertexSet &subtraction_set, VertexSet &tmp_set, uint64_t max_degree, galois::GAccumulator<long long>& local_ans, int depth) {
@@ -133,7 +146,8 @@ void pattern_matching_aggressive_func(Graph& graph, const Schedule &schedule, Ve
             continue;
         bool is_zero = false;
         for (int prefix_id = schedule.get_last(depth); prefix_id != -1; prefix_id = schedule.get_next(prefix_id)) {
-            vertex_set[prefix_id].build_vertex_set(schedule, vertex_set, &graph.getData(vertex).adj_node[0], graph.getData(vertex).degree, prefix_id, vertex);
+            build_vertex_set_with_block(schedule, vertex_set, &graph.getData(vertex).adj_node[0], graph.getData(vertex).degree, prefix_id);
+            // vertex_set[prefix_id].build_vertex_set(schedule, vertex_set, &graph.getData(vertex).adj_node[0], graph.getData(vertex).degree, prefix_id, vertex);
             if (vertex_set[prefix_id].get_size() == 0) {
                 is_zero = true;
                 break;
@@ -151,17 +165,19 @@ void pattern_matching_aggressive_func(Graph& graph, const Schedule &schedule, Ve
 long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_degree) {
     // 给它们加锁
     VertexSet* vertex_set = new VertexSet[schedule.get_total_prefix_num()];
-    VertexSet subtraction_set;
-    VertexSet tmp_set;
-    subtraction_set.init();
     galois::GAccumulator<long long> local_ans;
     // TODO : try different chunksize
     galois::do_all(
         galois::iterate(graph),
         [&](uint64_t vertex) {
+            VertexSet subtraction_set;
+            VertexSet tmp_set;
+            subtraction_set.init();
             for (int prefix_id = schedule.get_last(0); prefix_id != -1; prefix_id = schedule.get_next(prefix_id)) {
-                vertex_set[prefix_id].build_vertex_set(
+                build_vertex_set_with_block(
                     schedule, vertex_set, &graph.getData(vertex).adj_node[0], graph.getData(vertex).degree, prefix_id);
+                // vertex_set[prefix_id].build_vertex_set(
+                //     schedule, vertex_set, &graph.getData(vertex).adj_node[0], graph.getData(vertex).degree, prefix_id);
             }
             subtraction_set.push_back(vertex);
             pattern_matching_aggressive_func(graph, schedule, vertex_set, subtraction_set, tmp_set, max_degree, local_ans, 1);
@@ -172,7 +188,7 @@ long long pattern_matching(Graph& graph, const Schedule &schedule, uint64_t max_
         galois::steal(),
         galois::no_stats()
     );
-    // delete[] vertex_set;
+    delete[] vertex_set;
     std::cout << "local ans: " << local_ans.reduce() << std::endl;
     long long global_ans = local_ans.reduce();
     return global_ans / schedule.get_in_exclusion_optimize_redundancy();
@@ -229,8 +245,8 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
             }
             perm_size = j;
         }
-        // for (int i=0;i<pow;i++) delete[] candidate_permutations[i];
-        // delete[] candidate_permutations;
+        for (int i=0;i<pow;i++) delete[] candidate_permutations[i];
+        delete[] candidate_permutations;
 
         int *best_order = new int[size];
         double min_val = 0;
@@ -309,8 +325,8 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
             // delete[] restricts_first;
             // delete[] restricts_second;
         }
-        // for (int i=0;i<pow;i++) delete[] candidate_permutations_t[i];
-        // delete[] candidate_permutations_t;
+        for (int i=0;i<pow;i++) delete[] candidate_permutations_t[i];
+        delete[] candidate_permutations_t;
 
         int rank[size];
         for (int i = 0; i < size; ++i) rank[best_order[i]] = i;
@@ -319,13 +335,13 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         for (int i = 0; i < size; ++i)
             for (int j = 0; j < size; ++j)
                 adj_mat[INDEX(rank[i], rank[j], size)] = pattern_adj_mat[INDEX(i, j, size)]; 
-        // delete[] best_order;
+        delete[] best_order;
     }
     if (use_in_exclusion_optimize) {
         int* I = new int[size];
         for (int i = 0; i < size; ++i) I[i] = i;
         in_exclusion_optimize_num = get_vec_optimize_num(I);
-        // delete[] I;
+        delete[] I;
         if (in_exclusion_optimize_num <= 1) {
             printf("Can not use in_exclusion_optimize with this schedule\n");
             in_exclusion_optimize_num = 0;
@@ -377,8 +393,8 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
 
     build_loop_invariant();
     if (restricts_type != 0) add_restrict(best_pairs_first, best_pairs_second, best_pairs_size);
-    // delete[] best_pairs_first;
-    // delete[] best_pairs_second;
+    delete[] best_pairs_first;
+    delete[] best_pairs_second;
     
     set_in_exclusion_optimize_redundancy(complete, max_degree);
 }

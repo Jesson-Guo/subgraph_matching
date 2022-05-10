@@ -1,6 +1,0 @@
-add_executable(subgraph_matching-cpu subgraph_matching.cpp)
-add_dependencies(apps subgraph_matching-cpu)
-target_link_libraries(subgraph_matching-cpu PRIVATE Galois::shmem lonestar)
-install(TARGETS subgraph_matching-cpu DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT apps EXCLUDE_FROM_ALL)
-add_test_scale(small1 subgraph_matching-cpu "${BASEINPUT}/reference/structured/rome99.gr")
-add_test_scale(small2 subgraph_matching-cpu "${BASEINPUT}/scalefree/rmat10.gr")
