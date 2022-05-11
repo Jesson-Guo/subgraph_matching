@@ -1,5 +1,5 @@
 def gen_complete(size):
-    complete_edges = open("inputs/wiki-vote/complete.txt", "w")
+    complete_edges = open(f"inputs/wiki-vote/complete_{size+1}.txt", "w")
     for i in range(size+1):
         for j in range(size+1):
             if i==j:
@@ -22,4 +22,5 @@ def gen_dataset(path):
 
 
 if __name__ == "__main__":
-    gen_dataset("/home/jesson/Documents/code/GraphPi-master/dataset/test_input")
+    gen_complete(5)
+    gen_complete(6)
