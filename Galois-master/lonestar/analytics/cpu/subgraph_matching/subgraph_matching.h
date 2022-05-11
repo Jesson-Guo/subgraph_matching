@@ -207,7 +207,7 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         }
 
         int *best_order = new int[size];
-        double min_val;
+        double min_val=0;
         bool have_best = false;
 
         for (const auto &vec : candidate_permutations) {
@@ -241,7 +241,7 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
                 std::vector< std::pair<int,int> > Empty;
                 Empty.clear();
 
-                double val;
+                double val=0;
                 if (performance_modeling_type == 1) {
                     val = our_estimate_schedule_restrict(vec, Empty, v_cnt, e_cnt, tri_cnt);
                 }
@@ -264,7 +264,7 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
 
 
             for (const auto& pairs : restricts_vector) {
-                double val;
+                double val=0;
                 if (performance_modeling_type == 1) {
                     val = our_estimate_schedule_restrict(vec, pairs, v_cnt, e_cnt, tri_cnt);
                 }
@@ -319,10 +319,10 @@ Schedule::Schedule(const Pattern& pattern, bool &is_pattern_valid, int performan
         }
 
         bool have_best = false;
-        double min_val;
+        double min_val=0;
 
         for (const auto& pairs : restricts_vector) {
-            double val;
+            double val=0;
             if (restricts_type == 1) {
                 val = our_estimate_schedule_restrict(I, pairs, v_cnt, e_cnt, tri_cnt);
             }
